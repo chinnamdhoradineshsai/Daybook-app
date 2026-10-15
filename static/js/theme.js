@@ -714,41 +714,80 @@ const ThemeManager = (() => {
       });
     }
 
-    // On file selected: stage a lightweight object URL preview.
-    // Do NOT decode large phone photos into canvas here; that was causing tab crashes.
+    // On file selected: upload directly to the server.
+    // We intentionally avoid FileReader/canvas/object-URL previews for large photos.
     if (bgFileInput) {
-      bgFileInput.addEventListener("change", (e) => {
+      bgFileInput.addEventListener("change", async (e) => {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
-        if (!file.type || !file.type.startsWith("image/")) {
-          if (window.showToast) window.showToast("Please choose a JPG, PNG, or WebP image.");
-          return;
-        }
-        if (file.size > 20 * 1024 * 1024) {
-          if (window.showToast) window.showToast("Background image must be smaller than 20 MB.");
+
+        const name = (file.name || "").toLowerCase();
+        const allowed = [".jpg", ".jpeg", ".png", ".webp"];
+        const valid = (file.type && file.type.startsWith("image/")) ||
+                      allowed.some((ext) => name.endsWith(ext));
+
+        if (!valid) {
+          if (window.showToast) window.showToast("Choose a JPG, JPEG, PNG, or WebP image.");
+          bgFileInput.value = "";
           return;
         }
 
-        if (stagedBg && stagedBg.previewObjectUrl) {
-          try { URL.revokeObjectURL(stagedBg.previewObjectUrl); } catch (_) {}
+        if (file.size > 12 * 1024 * 1024) {
+          if (window.showToast) window.showToast("Background image must be smaller than 12 MB.");
+          bgFileInput.value = "";
+          return;
         }
-        const previewObjectUrl = URL.createObjectURL(file);
-        imageAnalysis = null;
-        stagedBg = {
-          file,
-          dataUrl: previewObjectUrl,
-          previewObjectUrl,
-          customBgFit: currentPrefs.customBgFit || "cover",
-          customBgPosition: currentPrefs.customBgPosition || "center",
-          customBgOverlayMode: currentPrefs.customBgOverlayMode || "dark",
-          customBgOverlayOpacity: currentPrefs.customBgOverlayOpacity ?? 0.45,
-          customBgBlur: currentPrefs.customBgBlur ?? 0,
-          customBgDynamicAccent: currentPrefs.customBgDynamicAccent ?? true,
-          customBgAccentColor: currentPrefs.customBgAccentColor || currentPrefs.accentColor,
-        };
-        updateBgPreviewMockup();
-        updatePreviewUI();
-        if (window.showToast) window.showToast("Preview ready. Click 'Apply' to upload it. ✨");
+
+        if (triggerUploadBtn) triggerUploadBtn.disabled = true;
+        const oldText = uploadBtnText ? uploadBtnText.textContent : "Choose Photo";
+        if (uploadBtnText) uploadBtnText.textContent = "Uploading...";
+
+        try {
+          const formData = new FormData();
+          formData.append("image", file, file.name);
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 45000);
+          const uploadRes = await fetch("/api/background/upload", {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          let resData = {};
+          try { resData = await uploadRes.json(); } catch (_) {}
+
+          if (!uploadRes.ok || !(resData.image_url || resData.imageUrl)) {
+            throw new Error(resData.error || `Background upload failed (${uploadRes.status})`);
+          }
+
+          const serverUrl = resData.image_url || resData.imageUrl;
+          cachedBgDataUrl = serverUrl;
+          currentPrefs.customBgImageUrl = serverUrl;
+          currentPrefs.customBgEnabled = true;
+          stagedBg = null;
+
+          applyTokens();
+          updateBgPreviewMockup();
+          updatePreviewUI();
+          savePreferences();
+
+          if (window.showToast) window.showToast("Background uploaded and applied ✨");
+        } catch (err) {
+          console.error("Background upload failed:", err);
+          if (window.showToast) {
+            window.showToast(
+              err && err.name === "AbortError"
+                ? "Background upload timed out. Try a smaller JPG/PNG."
+                : (err.message || "Background upload failed.")
+            );
+          }
+        } finally {
+          if (triggerUploadBtn) triggerUploadBtn.disabled = false;
+          if (uploadBtnText) uploadBtnText.textContent = oldText;
+          bgFileInput.value = "";
+        }
       });
     }
 
