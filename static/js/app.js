@@ -2238,70 +2238,62 @@ function renderEditorPhotoThumbnails() {
 
 async function handlePhotoFilesUpload(files) {
   if (!files || files.length === 0) return;
-  const rawList = Array.from(files).filter((f) => f && f.type.startsWith("image/"));
-  if (rawList.length === 0) return;
+  const rawList = Array.from(files).filter((f) => f && f.type && f.type.startsWith("image/"));
+  if (rawList.length === 0) {
+    showToast("Please choose an image file.");
+    return;
+  }
 
-  // Step 1: INSTANT PREVIEW (0ms latency)! Attach object URLs immediately so user sees thumbnails right away
-  const pendingItems = rawList.map((f) => {
-    const tempUrl = URL.createObjectURL(f);
-    return {
-      file: f,
-      tempUrl: tempUrl,
-      id: "photo_" + Math.random().toString(36).substring(2, 9),
-    };
-  });
-
-  const startIdx = (AppState.editorPhotos || []).length;
-  AppState.editorPhotos = (AppState.editorPhotos || []).concat(pendingItems.map((p) => p.tempUrl));
-  renderEditorPhotoThumbnails();
-
-  // Scroll smoothly to newly attached photos
-  setTimeout(() => {
-    const scrollEl = document.querySelector(".diary-photo-thumbs-scroll");
-    if (scrollEl) scrollEl.scrollLeft = scrollEl.scrollWidth;
-  }, 30);
-
-  // Step 2: Background Non-blocking Compression & Upload
+  // Upload one image at a time. This avoids decoding several large phone photos
+  // into canvas memory at once, which was causing browser/tab crashes.
   const uploadPromise = (async () => {
-    try {
-      const optimizedItems = await Promise.all(pendingItems.map((p) => compressImageForUpload(p.file)));
-
-      const formData = new FormData();
-      optimizedItems.forEach((item) => formData.append("photos", item.file));
-
-      const res = await fetch("/api/memories/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.urls && data.urls.length > 0) {
-          data.urls.forEach((serverUrl, i) => {
-            const tempUrl = pendingItems[i] ? pendingItems[i].tempUrl : null;
-            if (tempUrl) {
-              const currentPos = AppState.editorPhotos.indexOf(tempUrl);
-              if (currentPos !== -1) {
-                AppState.editorPhotos[currentPos] = serverUrl;
-                try { URL.revokeObjectURL(tempUrl); } catch (_) {}
-              }
-            }
-          });
-          renderEditorPhotoThumbnails();
-          showToast(`${data.urls.length} photo${data.urls.length > 1 ? "s" : ""} saved ✨`);
-        }
-      } else {
-        throw new Error("Upload response not OK");
+    let successCount = 0;
+    for (const file of rawList) {
+      if (file.size > 20 * 1024 * 1024) {
+        showToast(`${file.name} is too large. Maximum 20 MB per photo.`);
+        continue;
       }
-    } catch (err) {
-      console.warn("Photo upload warning:", err);
-      showToast("Photos attached locally", "info");
-    } finally {
-      AppState.activePhotoUploadPromise = null;
+
+      const tempUrl = URL.createObjectURL(file);
+      AppState.editorPhotos = (AppState.editorPhotos || []).concat([tempUrl]);
+      renderEditorPhotoThumbnails();
+
+      try {
+        const formData = new FormData();
+        formData.append("photos", file, file.name);
+        const res = await fetch("/api/memories/upload", { method: "POST", body: formData });
+        let data = {};
+        try { data = await res.json(); } catch (_) {}
+        if (!res.ok || !data.urls || !data.urls[0]) {
+          throw new Error(data.error || `Photo upload failed (${res.status})`);
+        }
+
+        const currentPos = AppState.editorPhotos.indexOf(tempUrl);
+        if (currentPos !== -1) AppState.editorPhotos[currentPos] = data.urls[0];
+        successCount += 1;
+      } catch (err) {
+        const currentPos = AppState.editorPhotos.indexOf(tempUrl);
+        if (currentPos !== -1) AppState.editorPhotos.splice(currentPos, 1);
+        console.error("Photo upload failed:", err);
+        showToast(err.message || "Photo upload failed. Please try a smaller JPG/PNG.");
+      } finally {
+        try { URL.revokeObjectURL(tempUrl); } catch (_) {}
+        renderEditorPhotoThumbnails();
+      }
+    }
+    if (successCount > 0) {
+      showToast(`${successCount} photo${successCount > 1 ? "s" : ""} saved ✨`);
     }
   })();
 
   AppState.activePhotoUploadPromise = uploadPromise;
+  try {
+    await uploadPromise;
+  } finally {
+    if (AppState.activePhotoUploadPromise === uploadPromise) {
+      AppState.activePhotoUploadPromise = null;
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -3657,7 +3649,7 @@ function initSoundLibrary() {
 
       try {
         if (replaceId) {
-          await window.SoundManager.replaceSound(replaceId, selectedAudioFile, title);
+          await window.SoundManager.replaceSound(replaceId, selectedAudioFile);
           showToast("Audio replaced successfully! 🎵");
         } else {
           await window.SoundManager.uploadSound(selectedAudioFile, title, eventTrigger, isDefault);
@@ -3759,7 +3751,7 @@ async function saveUserProfile(name, age) {
   AppState.preferences.user_age = age ? parseInt(age, 10) : null;
 
   try {
-    await fetch("/api/preferences", {
+    const response = await fetch("/api/preferences", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -3767,6 +3759,11 @@ async function saveUserProfile(name, age) {
         user_age: age ? parseInt(age, 10) : null,
       }),
     });
+    if (!response.ok) {
+      let detail = "";
+      try { detail = (await response.json()).error || ""; } catch (_) {}
+      throw new Error(detail || `Profile save failed (${response.status})`);
+    }
   } catch (err) {
     console.warn("Failed to persist user profile to backend:", err);
   }
@@ -3776,16 +3773,17 @@ async function saveUserProfile(name, age) {
 
 function applyUserProfile(name, age) {
   // Update Settings Profile display
-  const nameDisplay = document.getElementById("profile-settings-name-val");
-  const ageDisplay = document.getElementById("profile-settings-age-val");
+  const nameDisplay = document.getElementById("settings-profile-name-display") || document.getElementById("profile-settings-name-val");
+  const ageDisplay = document.getElementById("settings-profile-age-display") || document.getElementById("profile-settings-age-val");
   if (nameDisplay) nameDisplay.textContent = name || "Not set";
-  if (ageDisplay) ageDisplay.textContent = age ? `${age} years old` : "Not set";
+  if (ageDisplay) ageDisplay.textContent = age ? `Age: ${age}` : "Age: Not set";
 
-  // Update Avatar initial
+  // Update profile/avatar initials wherever they are rendered.
   const topAvatar = document.getElementById("top-avatar-initial");
-  if (topAvatar) {
-    topAvatar.textContent = name ? name.charAt(0).toUpperCase() : "D";
-  }
+  const settingsAvatar = document.getElementById("settings-profile-avatar");
+  const initial = name ? name.charAt(0).toUpperCase() : "D";
+  if (topAvatar) topAvatar.textContent = initial;
+  if (settingsAvatar) settingsAvatar.textContent = initial;
 
   // Update dynamic greeting on Home
   if (window.refreshLiveClockGreeting) {
@@ -3854,7 +3852,7 @@ function initUserProfile() {
   }
 
   // Edit Profile in Settings
-  const btnOpenEdit = document.getElementById("btn-open-edit-profile");
+  const btnOpenEdit = document.getElementById("btn-edit-profile-trigger") || document.getElementById("btn-open-edit-profile");
   const editModal = document.getElementById("edit-profile-modal");
   const btnCloseEdit = document.getElementById("btn-close-edit-profile");
   const btnCancelEdit = document.getElementById("btn-cancel-edit-profile");
