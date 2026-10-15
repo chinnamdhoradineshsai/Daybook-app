@@ -20,12 +20,16 @@ CREATE TABLE IF NOT EXISTS notes (
 -- 2. Projects Table (Monthly & Long-term goals)
 CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY,
+    user_id TEXT DEFAULT 'default_user',
     title TEXT NOT NULL,
     description TEXT DEFAULT '',
     status TEXT DEFAULT 'in_progress', -- 'not_started', 'in_progress', 'on_hold', 'completed'
     start_date TEXT DEFAULT NULL,
     deadline TEXT DEFAULT NULL,
     color TEXT DEFAULT '#4f46e5',
+    progress INTEGER DEFAULT 0,
+    notes TEXT DEFAULT '',
+    attachments TEXT DEFAULT '[]',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -66,12 +70,14 @@ CREATE TABLE IF NOT EXISTS recurring_rules (
 -- 5. Tasks Table (Two-Level: Daily Tasks with recurrence and project linking)
 CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY,
+    user_id TEXT DEFAULT 'default_user',
     title TEXT NOT NULL,
     description TEXT DEFAULT '',
     is_completed INTEGER DEFAULT 0,
     priority TEXT DEFAULT 'normal', -- 'low', 'normal', 'high'
     task_date TEXT NOT NULL,         -- 'YYYY-MM-DD' calendar date
     due_time TEXT DEFAULT NULL,      -- Optional time e.g. '14:30'
+    reminder TEXT DEFAULT NULL,
     due_date TEXT DEFAULT NULL,      -- Backward compatibility
     project_id TEXT DEFAULT NULL,    -- Optional link to parent project
     recurring_rule_id TEXT DEFAULT NULL, -- Link to recurring schedule
