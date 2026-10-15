@@ -93,8 +93,30 @@ def validate_audio_binary(audio_bytes, original_filename=""):
 def _supabase_storage_config():
     """Returns (url, key) for server-side Supabase Storage access."""
     url = (os.getenv("SUPABASE_URL") or "").rstrip("/")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY") or ""
+    key = (
+        os.getenv("SUPABASE_SECRET_KEY")
+        or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        or os.getenv("SUPABASE_KEY")
+        or ""
+    )
     return url, key
+
+
+def _supabase_request_headers(content_type=None):
+    """Build headers that work with both new sb_secret_* keys and legacy JWT service-role keys."""
+    _, key = _supabase_storage_config()
+    headers = {"apikey": key}
+
+    # New Supabase publishable/secret keys are API keys, not JWTs.
+    # Sending them as "Authorization: Bearer ..." can cause "Invalid JWT".
+    # Legacy service_role keys are JWTs and still use the Bearer header.
+    if key and not key.startswith(("sb_secret_", "sb_publishable_")):
+        headers["Authorization"] = f"Bearer {key}"
+
+    if content_type:
+        headers["Content-Type"] = content_type
+
+    return headers
 
 
 def upload_bytes_to_supabase(bucket, object_path, payload, content_type="application/octet-stream"):
@@ -108,12 +130,8 @@ def upload_bytes_to_supabase(bucket, object_path, payload, content_type="applica
 
     encoded_path = quote(object_path, safe="/")
     endpoint = f"{supabase_url}/storage/v1/object/{bucket}/{encoded_path}"
-    headers = {
-        "Authorization": f"Bearer {supabase_key}",
-        "apikey": supabase_key,
-        "Content-Type": content_type,
-        "x-upsert": "true",
-    }
+    headers = _supabase_request_headers(content_type)
+    headers["x-upsert"] = "true"
     response = requests.post(endpoint, data=payload, headers=headers, timeout=30)
     if response.status_code not in (200, 201):
         raise RuntimeError(f"Supabase Storage upload failed ({response.status_code}): {response.text[:300]}")
@@ -140,7 +158,7 @@ def delete_supabase_public_url(public_url):
         endpoint = f"{supabase_url}/storage/v1/object/{bucket}/{object_path}"
         response = requests.delete(
             endpoint,
-            headers={"Authorization": f"Bearer {supabase_key}", "apikey": supabase_key},
+            headers=_supabase_request_headers(),
             timeout=10,
         )
         return response.status_code in (200, 204)
@@ -226,7 +244,7 @@ def create_app():
             endpoint = f"{supabase_url}/storage/v1/object/{bucket}/{encoded_path}"
             upstream = requests.get(
                 endpoint,
-                headers={"Authorization": f"Bearer {supabase_key}", "apikey": supabase_key},
+                headers=_supabase_request_headers(),
                 timeout=20,
             )
             if upstream.status_code != 200:
