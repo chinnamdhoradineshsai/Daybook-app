@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: daybook-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 120
+    healthCheckPath: /api/health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      # Configure DATABASE_URL in Render Dashboard from Supabase PostgreSQL connection string:
+      # - key: DATABASE_URL
+      #   sync: false

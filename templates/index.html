@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="Daybook - Two-Level Task Management, Block Notes, Projects & Personal Productivity Workspace.">
+  
+  <title>Daybook — Personal Workspace</title>
+
+  <!-- Google Font: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="/static/css/style.css?v=10">
+
+  <!-- PWA Web App Manifest -->
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+  <!-- Custom Photo Background Layer -->
+  <div id="custom-bg-backdrop" class="custom-bg-backdrop" aria-hidden="true">
+    <div id="custom-bg-image" class="custom-bg-image"></div>
+    <div id="custom-bg-scrim" class="custom-bg-scrim"></div>
+  </div>
+
+  <div id="app" class="app-layout">
+
+    <!-- ==================================================== -->
+    <!-- TOP APP BAR (Profile, Workspace & Actions)           -->
+    <!-- ==================================================== -->
+    <header class="top-bar">
+      <div class="top-bar-user" data-target="view-settings" style="cursor: pointer;" title="Open Settings & Companions">
+        <div class="user-avatar">
+          <span>D</span>
+          <span class="user-online-dot"></span>
+        </div>
+        <div class="user-meta">
+          <span class="user-subtitle">Welcome back</span>
+          <span class="workspace-name" id="top-workspace-name">Daybook Workspace</span>
+        </div>
+      </div>
+
+      <div class="top-bar-actions">
+        <!-- Quick Create / Add Trigger (+) -->
+        <button id="btn-top-quick-capture" class="icon-btn highlight-accent btn-top-add" aria-label="Create New" title="Create New Item (+)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+
+        <!-- Quick Search Trigger -->
+        <button id="btn-quick-search" class="icon-btn" aria-label="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+
+        <!-- Fast Theme Toggle -->
+        <button id="btn-theme-toggle" class="icon-btn" aria-label="Toggle Theme">
+          <svg class="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <!-- Settings & Companion Gallery Trigger -->
+        <button id="btn-open-settings" class="icon-btn" aria-label="Settings" data-target="view-settings" title="Settings & Companions">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Content Area -->
+    <main class="main-content">
+
+      <!-- ==================================================== -->
+      <!-- SCREEN 1: HOME DASHBOARD                             -->
+      <!-- ==================================================== -->
+      <!-- ==================================================== -->
+      <!-- SCREEN 1: PERSONAL DAILY DASHBOARD (HOME)            -->
+      <!-- ==================================================== -->
+      <section id="view-dashboard" class="view-screen active">
+
+        <!-- 1. Header with Live Digital Clock & Dynamic Greeting -->
+        <header class="home-hero-header">
+          <div class="home-greeting-pill" id="home-greeting-text">Good Evening 👋</div>
+          <div class="home-live-clock-wrap">
+            <span class="home-live-clock" id="home-live-clock">07:42 PM</span>
+          </div>
+          <p class="home-live-date" id="home-live-date">Monday, 12 October 2026</p>
+          <p class="home-greeting-motto" id="home-greeting-motto">Let's make today meaningful.</p>
+        </header>
+
+        <!-- 2. Today's Tasks Simple Card -->
+        <div class="home-dash-card card" id="home-today-tasks-card" data-target="view-tasks">
+          <div class="home-dash-card-left">
+            <div class="dash-card-icon-badge blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </div>
+            <div class="dash-card-info">
+              <h2 class="dash-card-title">Today's Tasks</h2>
+              <p class="dash-card-subtitle" id="home-tasks-remaining-label">0 tasks remaining</p>
+            </div>
+          </div>
+          <div class="dash-card-action">
+            <span class="dash-card-action-text">View All Tasks</span>
+            <svg class="dash-card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 3. Projects Simple Card -->
+        <div class="home-dash-card card" id="home-projects-card" data-target="view-projects">
+          <div class="home-dash-card-left">
+            <div class="dash-card-icon-badge purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </div>
+            <div class="dash-card-info">
+              <h2 class="dash-card-title">Projects</h2>
+              <p class="dash-card-subtitle" id="home-projects-active-label">0 Active Projects</p>
+            </div>
+          </div>
+          <div class="dash-card-action">
+            <span class="dash-card-action-text">View All Projects</span>
+            <svg class="dash-card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 4. Memories Simple Card -->
+        <div class="home-dash-card card" id="home-memories-card" data-target="view-journal">
+          <div class="home-dash-card-left">
+            <div class="dash-card-icon-badge rose">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                <circle cx="13" cy="9" r="1.5"></circle>
+              </svg>
+            </div>
+            <div class="dash-card-info">
+              <h2 class="dash-card-title">Memories</h2>
+              <p class="dash-card-subtitle" id="home-memories-count-label">Daily Diary & Moments</p>
+            </div>
+          </div>
+          <div class="dash-card-action">
+            <span class="dash-card-action-text">View All Memories</span>
+            <svg class="dash-card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 5. Recent Memory Preview (Shows only ONE memory) -->
+        <div class="home-memory-card card" id="home-recent-memory-card">
+          <!-- Dynamically populated with ONE recent memory or warm welcome state -->
+        </div>
+
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- SCREEN 2: ALL NOTES SCREEN                           -->
+      <!-- ==================================================== -->
+      <section id="view-notes" class="view-screen">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">All Notes</h1>
+            <p class="screen-subtitle">Block editor, templates, and private knowledge base.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-create-note">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>New Note</span>
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="notes-search-bar">
+          <svg class="search-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="search" placeholder="Search notes by title or content..." class="search-input" id="notes-filter-input">
+        </div>
+
+        <!-- Notes List Container -->
+        <div class="notes-list-container" id="notes-list-all">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- SCREEN: QUICK CAPTURE INBOX (Feature Three)          -->
+      <!-- ==================================================== -->
+      <section id="view-inbox" class="view-screen">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Quick Capture Inbox</h1>
+            <p class="screen-subtitle">Frictionless inbox to capture ideas, tasks, and notes before organizing them.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-inbox-quick-capture-action">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>+ Quick Capture</span>
+          </button>
+        </div>
+
+        <!-- Filter tabs for Inbox -->
+        <div class="inbox-filter-bar">
+          <button class="inbox-filter-btn active" data-inbox-filter="inbox">Unprocessed (<span id="inbox-count-unprocessed">0</span>)</button>
+          <button class="inbox-filter-btn" data-inbox-filter="all">All Items (<span id="inbox-count-all">0</span>)</button>
+          <button class="inbox-filter-btn" data-inbox-filter="processed">Processed</button>
+          <button class="inbox-filter-btn" data-inbox-filter="archived">Archived</button>
+        </div>
+
+        <!-- Inbox Items List Container -->
+        <div class="inbox-list-container" id="inbox-items-list">
+          <!-- Dynamically populated by app.js -->
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- SCREEN 3: TWO-LEVEL TASKS SCREEN                     -->
+      <!-- Section 23: Today Tasks & Navigation                 -->
+      <!-- ==================================================== -->
+      <section id="view-tasks" class="view-screen">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Today's Tasks</h1>
+            <p class="screen-subtitle">Organize daily priorities and celebrate completions.</p>
+          </div>
+        </div>
+
+        <div class="today-tasks-layout-wrapper">
+          <!-- Main Today Tasks Column -->
+          <div class="today-tasks-main-col">
+            <!-- Calendar Date Stepper (Section 23 - A) -->
+            <div class="date-navigator-bar">
+              <button class="date-nav-btn" id="btn-prev-day" aria-label="Previous Day">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              
+              <div class="date-display-badge">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>
+                <span id="tasks-active-date-label">Today</span>
+                <input type="date" id="tasks-date-picker-hidden" class="hidden-date-picker">
+              </div>
+
+              <button class="date-nav-btn" id="btn-next-day" aria-label="Next Day">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+
+            <!-- Filter Segment -->
+            <div class="filter-segments">
+              <button class="filter-tab active" data-task-filter="all">All</button>
+              <button class="filter-tab" data-task-filter="pending">Pending</button>
+              <button class="filter-tab" data-task-filter="completed">Completed</button>
+            </div>
+
+            <!-- Quick Add Task Bar (with Project Linking) -->
+            <form id="form-add-task" class="quick-add-task-box">
+              <div class="quick-task-row">
+                <input type="text" id="new-task-input" placeholder="Add a task for this date..." class="quick-input" required>
+                <button type="submit" class="btn btn-primary btn-sm">Add</button>
+              </div>
+              <div class="quick-task-options-row">
+                <select id="new-task-priority" class="priority-select" aria-label="Priority">
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="low">Low</option>
+                </select>
+                <!-- Project Link Option (Section 23 - C) -->
+                <select id="new-task-project" class="priority-select" aria-label="Link to Project">
+                  <option value="">No Project (Standalone)</option>
+                  <!-- Dynamically populated with active projects -->
+                </select>
+                <!-- Recurring Task Option (Feature One) -->
+                <select id="new-task-recurring-freq" class="priority-select" aria-label="Recurrence Schedule">
+                  <option value="none">🔁 Does not repeat</option>
+                  <option value="daily">🔁 Repeats Daily</option>
+                  <option value="weekly">🔁 Repeats Weekly</option>
+                  <option value="monthly">🔁 Repeats Monthly</option>
+                  <option value="custom_days">🔁 Specific Weekdays</option>
+                </select>
+              </div>
+              <!-- Recurring Custom Weekdays and End Date Controls -->
+              <div id="recurring-custom-days-row" class="recurring-custom-days-row" style="display: none;">
+                <div class="recurring-weekdays-group">
+                  <span class="custom-days-label">Repeat on:</span>
+                  <div class="weekday-pills">
+                    <button type="button" class="weekday-pill active" data-day="1" title="Monday">M</button>
+                    <button type="button" class="weekday-pill active" data-day="2" title="Tuesday">T</button>
+                    <button type="button" class="weekday-pill active" data-day="3" title="Wednesday">W</button>
+                    <button type="button" class="weekday-pill active" data-day="4" title="Thursday">T</button>
+                    <button type="button" class="weekday-pill active" data-day="5" title="Friday">F</button>
+                    <button type="button" class="weekday-pill" data-day="6" title="Saturday">S</button>
+                    <button type="button" class="weekday-pill" data-day="7" title="Sunday">S</button>
+                  </div>
+                </div>
+                <div class="recurring-end-date-wrap">
+                  <span class="custom-days-label">Until:</span>
+                  <input type="date" id="new-task-recurring-end" class="quick-date-input" title="Optional end date (empty for indefinite)">
+                </div>
+              </div>
+            </form>
+
+            <!-- Tasks List with animated checkboxes -->
+            <div class="tasks-list" id="tasks-list-all">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Desktop Right Side / Mobile Stacked: Health & Wellness Card -->
+          <div class="today-tasks-side-col">
+            <div class="health-wellness-card card" id="health-wellness-today-card">
+              <!-- Populated by HealthManager -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- SCREEN 4: MONTHLY TASKS & PROJECTS SCREEN            -->
+      <!-- Section 23 - B: Projects & Milestones                -->
+      <!-- ==================================================== -->
+      <section id="view-projects" class="view-screen">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Monthly Projects</h1>
+            <p class="screen-subtitle">Track multi-day initiatives, goals & milestones.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-open-new-project">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>New Project</span>
+          </button>
+        </div>
+
+        <!-- Project Status Filters -->
+        <div class="filter-segments">
+          <button class="filter-tab active" data-project-filter="active">Active</button>
+          <button class="filter-tab" data-project-filter="all">All Projects</button>
+          <button class="filter-tab" data-project-filter="completed">Archived</button>
+        </div>
+
+        <!-- Projects Container -->
+        <div class="projects-list-container" id="projects-list-all">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- ==================================================== -->
+      <!-- SCREEN 5: JOURNAL & MEMORIES ALBUM                   -->
+      <!-- ==================================================== -->
+      <section id="view-journal" class="view-screen">
+        <div class="screen-header memory-screen-header">
+          <div>
+            <h1 class="screen-title">My Memories</h1>
+            <p class="screen-subtitle">Your life, one day at a time.</p>
+          </div>
+          <button class="btn btn-primary btn-create-memory" id="btn-open-create-memory">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <span>Write Today's Entry</span>
+          </button>
+        </div>
+
+        <!-- Prominent Today Date Banner -->
+        <div class="diary-today-hero-card card">
+          <div class="diary-today-hero-left">
+            <span class="diary-today-pill">TODAY</span>
+            <h2 class="diary-today-heading" id="memories-prominent-today-date">Today's Date</h2>
+            <p class="diary-today-quote">"Your life, one day at a time. Record today's story, moments, and feelings."</p>
+          </div>
+          <button type="button" class="btn btn-primary btn-write-today-action" id="btn-hero-write-today">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <span>Write Today's Entry</span>
+          </button>
+        </div>
+
+        <!-- Filter / Search bar for memories -->
+        <div class="memory-search-bar">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="memory-search-input" placeholder="Search memories by title, location, feeling, or tags..." class="memory-search-field">
+        </div>
+
+        <!-- Memory Timeline Container (Grouped by Month) -->
+        <div class="memory-timeline-container" id="memory-timeline-container">
+          <!-- Dynamically populated with attractive memory cards -->
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- SCREEN 6: SEARCH SCREEN                              -->
+      <!-- ==================================================== -->
+      <section id="view-search" class="view-screen">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Global Search</h1>
+            <p class="screen-subtitle">Search notes, tasks, projects, and journal entries.</p>
+          </div>
+        </div>
+
+        <div class="notes-search-bar">
+          <svg class="search-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="search" placeholder="Search across your entire workspace..." class="search-input" id="global-search-input">
+        </div>
+
+        <div id="search-results-container" class="search-results-list">
+          <div class="empty-state-card">
+            <span class="empty-icon">🔍</span>
+            <p class="empty-title">Search Daybook</p>
+            <p class="empty-subtitle">Type 2 or more characters to search titles and contents.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- SCREEN 7: SETTINGS & APPEARANCE CUSTOMIZATION        -->
+      <!-- ==================================================== -->
+      <section id="view-settings" class="view-screen">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Settings & System</h1>
+            <p class="screen-subtitle">Personalize themes, widgets, backup & bear mascot.</p>
+          </div>
+          <button class="btn btn-sm btn-outline" id="btn-reset-appearance">Reset Defaults</button>
+        </div>
+
+        <!-- 0. User Profile Card (Name & Age) -->
+        <div class="card settings-profile-card">
+          <div class="settings-profile-left">
+            <div class="user-avatar-lg" id="settings-profile-avatar">D</div>
+            <div class="settings-profile-info">
+              <span class="card-eyebrow">USER PROFILE</span>
+              <h2 class="settings-profile-name" id="settings-profile-name-display">Dinesh</h2>
+              <p class="settings-profile-age" id="settings-profile-age-display">Age: 22</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" id="btn-edit-profile-trigger">Edit Profile</button>
+        </div>
+
+        <!-- 1. Live Interactive Preview Card -->
+        <div class="card appearance-preview-card">
+          <div class="preview-card-header">
+            <span class="card-eyebrow">LIVE INTERACTIVE PREVIEW</span>
+            <span class="badge badge-info">Instant Preview</span>
+          </div>
+          <h2 class="preview-card-title">Daybook Design System</h2>
+          <p class="preview-card-desc">Your colors, density, and font size live across Daybook.</p>
+          
+          <div class="preview-elements-row">
+            <button class="btn btn-primary btn-sm">Primary Action</button>
+            <span class="note-tag">Sample Tag</span>
+            <label class="custom-checkbox">
+              <input type="checkbox" checked readonly>
+              <span class="checkmark"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 2. Theme Mode Setting -->
+        <div class="settings-group">
+          <h2 class="settings-group-title">THEME MODE</h2>
+          <div class="theme-mode-buttons">
+            <button class="theme-mode-btn active" data-mode="light">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+              </svg>
+              <span>Light</span>
+            </button>
+            <button class="theme-mode-btn" data-mode="dark">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+              <span>Dark</span>
+            </button>
+            <button class="theme-mode-btn" data-mode="system">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+              </svg>
+              <span>System</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Accent Color Customization -->
+        <div class="settings-group">
+          <h2 class="settings-group-title">ACCENT COLOR</h2>
+          <div class="accent-swatches-grid">
+            <button class="accent-swatch active" data-color="#4f46e5" style="--swatch-color: #4f46e5;" aria-label="Indigo"></button>
+            <button class="accent-swatch" data-color="#8b5cf6" style="--swatch-color: #8b5cf6;" aria-label="Violet"></button>
+            <button class="accent-swatch" data-color="#10b981" style="--swatch-color: #10b981;" aria-label="Emerald"></button>
+            <button class="accent-swatch" data-color="#f43f5e" style="--swatch-color: #f43f5e;" aria-label="Coral"></button>
+            <button class="accent-swatch" data-color="#06b6d4" style="--swatch-color: #06b6d4;" aria-label="Ocean"></button>
+            <button class="accent-swatch" data-color="#f59e0b" style="--swatch-color: #f59e0b;" aria-label="Amber"></button>
+          </div>
+
+          <div class="custom-color-row">
+            <span class="custom-color-label">Custom accent color:</span>
+            <input type="color" id="pref-custom-accent" value="#4f46e5" class="color-picker-input">
+          </div>
+        </div>
+
+        <!-- 3B. Custom Photo Background & Dynamic Theme -->
+        <div class="settings-group" id="settings-custom-bg-group">
+          <div class="settings-group-header-row">
+            <div>
+              <h2 class="settings-group-title">CUSTOM BACKGROUND & DYNAMIC THEME</h2>
+              <p class="settings-desc">Upload a personal photo for your workspace background with frosted glass cards and dynamic color palette.</p>
+            </div>
+            <div class="settings-header-actions" style="display:flex; gap:8px; align-items:center;">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-restore-default-bg" style="display:none;" title="Remove photo and restore default background">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                Restore Default
+              </button>
+            </div>
+          </div>
+
+          <!-- Hidden Native File Input -->
+          <input type="file" id="bg-file-input" accept="image/jpeg,image/png,image/webp" style="display:none;" aria-label="Upload custom background photo">
+
+          <!-- Wallpaper Live Preview Card -->
+          <div class="custom-bg-preview-card" id="custom-bg-preview-card">
+            <div class="bg-preview-viewport" id="bg-preview-viewport">
+              <div class="bg-preview-image" id="bg-preview-image"></div>
+              <div class="bg-preview-scrim" id="bg-preview-scrim"></div>
+              
+              <!-- Simulated Daybook Frosted Glass UI Widget -->
+              <div class="bg-preview-glass-widget" id="bg-preview-glass-widget">
+                <div class="glass-widget-header">
+                  <div class="glass-avatar">D</div>
+                  <div>
+                    <div class="glass-title">Daybook Workspace</div>
+                    <div class="glass-subtitle" id="bg-preview-status-badge">Default Theme</div>
+                  </div>
+                </div>
+                <div class="glass-widget-metric">
+                  <div class="glass-stat">
+                    <span class="glass-stat-num">5</span>
+                    <span class="glass-stat-lbl">Active Tasks</span>
+                  </div>
+                  <div class="glass-tag" id="bg-preview-accent-chip">Dynamic Accent</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-preview-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-trigger-upload-bg">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <span id="btn-upload-text">Choose Photo</span>
+              </button>
+              
+              <div class="bg-pending-actions" id="bg-pending-actions" style="display:none; gap:8px;">
+                <button type="button" class="btn btn-success btn-sm" id="btn-apply-bg">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  Apply Background
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-bg">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Background Settings Controls -->
+          <div class="custom-bg-controls" id="custom-bg-controls" style="display:none;">
+            <!-- Image Fitting -->
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <span class="settings-label">Image Fitting</span>
+                <span class="settings-desc">Cover fills the viewport, Contain preserves entire photo</span>
+              </div>
+              <div class="segmented-control" id="bg-fit-controls">
+                <button type="button" class="bg-fit-btn active" data-fit="cover">Cover (Fill)</button>
+                <button type="button" class="bg-fit-btn" data-fit="contain">Contain (Fit)</button>
+              </div>
+            </div>
+
+            <!-- Focal Position Alignment -->
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <span class="settings-label">Image Focal Position</span>
+                <span class="settings-desc">Anchor focal area during responsive window resizing</span>
+              </div>
+              <div class="segmented-control" id="bg-position-controls">
+                <button type="button" class="bg-pos-btn" data-pos="top">Top</button>
+                <button type="button" class="bg-pos-btn active" data-pos="center">Center</button>
+                <button type="button" class="bg-pos-btn" data-pos="bottom">Bottom</button>
+                <button type="button" class="bg-pos-btn" data-pos="left">Left</button>
+                <button type="button" class="bg-pos-btn" data-pos="right">Right</button>
+              </div>
+            </div>
+
+            <!-- Overlay Mode -->
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <span class="settings-label">Contrast Overlay Mode</span>
+                <span class="settings-desc">Dark, Light or Auto (adapts to photo luminance)</span>
+              </div>
+              <div class="segmented-control" id="bg-overlay-mode-controls">
+                <button type="button" class="bg-overlay-mode-btn active" data-overlay="dark">Dark</button>
+                <button type="button" class="bg-overlay-mode-btn" data-overlay="light">Light</button>
+                <button type="button" class="bg-overlay-mode-btn" data-overlay="auto">Auto</button>
+              </div>
+            </div>
+
+            <!-- Overlay Opacity Slider -->
+            <div class="settings-item slider-settings-item">
+              <div class="settings-item-info">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="settings-label">Overlay Opacity</span>
+                  <span class="badge badge-info" id="bg-opacity-value-badge">45%</span>
+                </div>
+                <span class="settings-desc">Ensures high readability over high-detail photos</span>
+              </div>
+              <div class="slider-container">
+                <input type="range" id="bg-opacity-slider" min="0" max="90" step="5" value="45" class="range-slider" aria-label="Overlay Opacity">
+              </div>
+            </div>
+
+            <!-- Background Blur Slider -->
+            <div class="settings-item slider-settings-item">
+              <div class="settings-item-info">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="settings-label">Background Blur</span>
+                  <span class="badge badge-info" id="bg-blur-value-badge">0px</span>
+                </div>
+                <span class="settings-desc">0px preserves crisp photo; higher values create soft ambient glass</span>
+              </div>
+              <div class="slider-container">
+                <input type="range" id="bg-blur-slider" min="0" max="25" step="1" value="0" class="range-slider" aria-label="Background Blur">
+              </div>
+            </div>
+
+            <!-- Dynamic Accent Color Toggle -->
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <span class="settings-label">Dynamic Accent Color</span>
+                <span class="settings-desc">Automatically extract a complementary vibrant color from your photo</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div id="bg-extracted-swatch-wrap" style="display:flex; align-items:center; gap:6px;">
+                  <span class="accent-swatch" id="bg-extracted-swatch" style="--swatch-color: #8b5cf6; width:26px; height:26px; cursor:default;" title="Extracted dominant accent"></span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="bg-dynamic-accent-toggle" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Workspace Geometry -->
+        <div class="settings-group">
+          <h2 class="settings-group-title">WORKSPACE GEOMETRY</h2>
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Layout Density</span>
+              <span class="settings-desc">Adjust padding for mobile thumb reach</span>
+            </div>
+            <div class="segmented-control">
+              <button class="density-btn active" data-density="comfortable">Comfortable</button>
+              <button class="density-btn" data-density="compact">Compact</button>
+            </div>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Card Corners</span>
+              <span class="settings-desc">Pill-rounded or subtle soft rectangles</span>
+            </div>
+            <div class="segmented-control">
+              <button class="radius-btn active" data-radius="rounded">Rounded</button>
+              <button class="radius-btn" data-radius="subtle">Subtle</button>
+            </div>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Reading Font Size</span>
+              <span class="settings-desc">Scale text for optimum reading comfort</span>
+            </div>
+            <div class="segmented-control">
+              <button class="font-size-btn" data-size="compact">S</button>
+              <button class="font-size-btn active" data-size="normal">M</button>
+              <button class="font-size-btn" data-size="large">L</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Animal Companion Gallery (Feature: Customizable Animal Companions) -->
+        <div class="settings-group">
+          <div class="settings-group-header-row">
+            <div>
+              <h2 class="settings-group-title">ANIMAL COMPANION GALLERY</h2>
+              <p class="settings-desc">Choose from 11 original vector companions or upload a photo from your gallery!</p>
+            </div>
+            <div class="settings-header-actions" style="display:flex; gap:8px;">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-toggle-companion-disable" title="Enable or disable companion celebrations">Disable Mascot</button>
+              <button type="button" class="btn btn-sm btn-outline" id="btn-test-companion" title="Test animation preview">Test Celebration 🎉</button>
+            </div>
+          </div>
+
+          <!-- Companions Grid (11 Animals + Custom Photo) -->
+          <div class="companion-gallery-grid" id="companion-gallery-grid" role="region" aria-label="Animal Companion Selection Gallery">
+            <!-- Dynamically populated by companions.js -->
+          </div>
+
+          <!-- Companion Customization Controls -->
+          <div class="companion-controls-card">
+            <div class="form-group">
+              <label for="companion-nickname-input" class="form-label">Companion Nickname</label>
+              <input type="text" id="companion-nickname-input" class="quick-input" placeholder="e.g. Barnaby, Mochi, Champion">
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">Display Size</label>
+                <div class="segmented-control">
+                  <button type="button" class="size-btn" data-companion-size="compact">Compact</button>
+                  <button type="button" class="size-btn active" data-companion-size="regular">Regular</button>
+                  <button type="button" class="size-btn" data-companion-size="large">Large</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Device Gallery Photo</label>
+                <input type="file" id="companion-photo-input" accept="image/*" class="hidden-file-input">
+                <div class="photo-btn-group">
+                  <label for="companion-photo-input" class="btn btn-sm btn-outline photo-upload-btn">📷 Pick Photo</label>
+                  <button type="button" class="btn btn-sm btn-outline btn-danger-soft" id="btn-remove-custom-photo" style="display:none;">Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Companion Celebrations -->
+        <div class="settings-group">
+          <h2 class="settings-group-title">COMPANION CELEBRATIONS</h2>
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Mascot Speech Bubbles</span>
+              <span class="settings-desc">Celebrate completed tasks with encouraging speech bubbles and companion reactions</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="pref-mascot-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 7. Victory Sounds & Audio Library (Feature: Victory Sounds) -->
+        <div class="settings-group" id="settings-group-sounds">
+          <div class="settings-group-header-row">
+            <div>
+              <h2 class="settings-group-title">VICTORY SOUNDS & AUDIO LIBRARY</h2>
+              <p class="settings-desc">Celebrate completed tasks and milestones with custom audio from your device or built-in victory chimes.</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" id="btn-open-sound-upload">
+              <span>+ Upload Sound</span>
+            </button>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Enable Victory Sounds</span>
+              <span class="settings-desc">Play celebratory audio chime when completing tasks or milestones</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="pref-victory-sound-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Playback Volume (<span id="sound-volume-display">70%</span>)</span>
+              <span class="settings-desc">Adjust loudness of victory celebration sounds</span>
+            </div>
+            <div class="sound-volume-control-wrap" style="display:flex; align-items:center; gap:10px;">
+              <input type="range" id="pref-victory-sound-volume" min="0" max="1" step="0.05" value="0.7" class="crop-slider" style="width: 130px;">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-test-sound-volume" title="Test Volume">🔊 Test</button>
+            </div>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Celebration Trigger Mode</span>
+              <span class="settings-desc">Choose whether celebration sounds play on every task or only milestones</span>
+            </div>
+            <select id="select-sound-event-mode" class="priority-select" style="max-width: 190px;">
+              <option value="every_task">Every Completed Task</option>
+              <option value="selected_events">Selected Events Only</option>
+            </select>
+          </div>
+
+          <div class="form-row-2" style="margin-top: 14px;">
+            <div class="form-group">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label class="form-label" for="select-default-task-sound" style="margin:0;">Default Task Sound</label>
+                <button type="button" class="btn btn-sm btn-outline" id="btn-preview-task-sound" style="padding:2px 8px; font-size:0.72rem;">▶ Preview</button>
+              </div>
+              <select id="select-default-task-sound" class="priority-select">
+                <!-- Dynamically populated by SoundManager -->
+              </select>
+            </div>
+            <div class="form-group">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label class="form-label" for="select-default-milestone-sound" style="margin:0;">Milestone Sound</label>
+                <button type="button" class="btn btn-sm btn-outline" id="btn-preview-milestone-sound" style="padding:2px 8px; font-size:0.72rem;">▶ Preview</button>
+              </div>
+              <select id="select-default-milestone-sound" class="priority-select">
+                <!-- Dynamically populated by SoundManager -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Sound Library Cards List -->
+          <div class="sound-library-container" style="margin-top: 16px;">
+            <div class="sound-library-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span class="card-eyebrow">YOUR SOUND COLLECTION</span>
+              <span class="badge badge-info" id="sound-library-count">Loading sounds...</span>
+            </div>
+            <div class="sound-cards-grid" id="sound-library-grid">
+              <!-- Dynamically populated by SoundManager & app.js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Data Backup & Export (Section 22 - 6) -->
+        <div class="settings-group">
+          <h2 class="settings-group-title">DATA MANAGEMENT & BACKUP</h2>
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Download Full Workspace Backup</span>
+              <span class="settings-desc">Export notes, tasks, projects & journals as JSON</span>
+            </div>
+            <a href="/api/export" class="btn btn-sm btn-primary" download>Export JSON</a>
+          </div>
+        </div>
+
+        <!-- 7. Backend & Database System Status -->
+        <div class="settings-group">
+          <h2 class="settings-group-title">SYSTEM STATUS</h2>
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Backend Connection</span>
+              <span class="settings-desc" id="status-backend-detail">Connecting...</span>
+            </div>
+            <span class="badge badge-success" id="badge-backend-status">Active</span>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Database Engine</span>
+              <span class="settings-desc" id="status-db-detail">SQLite Dev • Supabase Ready</span>
+            </div>
+            <span class="badge badge-info">Persistent</span>
+          </div>
+        </div>
+
+        <!-- 8. Legal & Terms of Service -->
+        <div class="settings-group">
+          <h2 class="settings-group-title">LEGAL &amp; POLICIES</h2>
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-label">Terms &amp; Conditions</span>
+              <span class="settings-desc">Rules governing your use of Daybook</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline" id="btn-open-terms">View Terms</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- SCREEN 8: DEDICATED DASHBOARD & CONSISTENCY TRACKER  -->
+      <!-- Weekly Progress, Monthly Progress, Heatmap, Streaks  -->
+      <!-- ==================================================== -->
+      <section id="view-analytics" class="view-screen">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title" id="analytics-header-title">Your Progress</h1>
+            <p class="screen-subtitle">See how consistent you've been with your goals.</p>
+          </div>
+        </div>
+
+        <!-- 1. Top Summary Cards (4 Cards) -->
+        <div class="analytics-summary-grid">
+          <div class="card analytics-stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-icon-wrap blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </span>
+              <span class="analytics-stat-tag" id="stat-weekly-label">Routine</span>
+            </div>
+            <div class="stat-card-body">
+              <span class="analytics-stat-value" id="stat-weekly-consistency">0%</span>
+              <span class="analytics-stat-label">Weekly Consistency</span>
+            </div>
+          </div>
+
+          <div class="card analytics-stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-icon-wrap purple">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </span>
+              <span class="analytics-stat-tag" id="stat-monthly-label">Routine</span>
+            </div>
+            <div class="stat-card-body">
+              <span class="analytics-stat-value" id="stat-monthly-consistency">0%</span>
+              <span class="analytics-stat-label">Monthly Consistency</span>
+            </div>
+          </div>
+
+          <div class="card analytics-stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-icon-wrap flame">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                </svg>
+              </span>
+              <span class="analytics-stat-tag positive">🔥 Active</span>
+            </div>
+            <div class="stat-card-body">
+              <span class="analytics-stat-value" id="stat-current-streak">0 Days</span>
+              <span class="analytics-stat-label">Current Streak</span>
+            </div>
+          </div>
+
+          <div class="card analytics-stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-icon-wrap gold">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </span>
+              <span class="analytics-stat-tag purple">⭐ Record</span>
+            </div>
+            <div class="stat-card-body">
+              <span class="analytics-stat-value" id="stat-best-streak">0 Days</span>
+              <span class="analytics-stat-label">Best Streak</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Friendly Empty State (shown if user has no task data yet) -->
+        <div class="card analytics-empty-state" id="analytics-empty-state" style="display: none;">
+          <div class="analytics-empty-icon">🌱</div>
+          <h2 class="analytics-empty-title">Your journey starts today 🌱</h2>
+          <p class="analytics-empty-subtitle">Complete your first task to start building your consistency.</p>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-analytics-start-task">Add Your First Task</button>
+        </div>
+
+        <!-- 2. Two Main Sections (Cleanly Separated) -->
+        <div class="analytics-sections-container" id="analytics-content-container">
+
+          <!-- Section A: Weekly Progress ("This Week") -->
+          <div class="card analytics-main-card" id="analytics-weekly-card">
+            <div class="analytics-card-header">
+              <div>
+                <span class="card-eyebrow">WEEKLY PERFORMANCE</span>
+                <h2 class="analytics-section-title">This Week</h2>
+              </div>
+              <span class="analytics-streak-badge" id="weekly-streak-badge">🔥 0 Days</span>
+            </div>
+
+            <!-- Prominent Circular Score Showcase Row -->
+            <div class="analytics-score-showcase">
+              <div class="circular-score-widget">
+                <svg class="score-circle-svg" width="116" height="116" viewBox="0 0 116 116">
+                  <circle class="score-circle-track" cx="58" cy="58" r="48" fill="none" stroke-width="8" />
+                  <circle class="score-circle-bar" id="weekly-circle-bar" cx="58" cy="58" r="48" fill="none" stroke-width="8"
+                    stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6" transform="rotate(-90 58 58)" />
+                </svg>
+                <div class="score-circle-content">
+                  <span class="score-circle-val" id="weekly-score-text">0%</span>
+                  <span class="score-circle-tag" id="weekly-score-label">Routine</span>
+                </div>
+              </div>
+
+              <div class="analytics-showcase-metrics">
+                <div class="analytics-stat-pill">
+                  <span class="stat-pill-label">Tasks Planned</span>
+                  <span class="stat-pill-val" id="metric-week-planned">0</span>
+                </div>
+                <div class="analytics-stat-pill">
+                  <span class="stat-pill-label">Completed</span>
+                  <span class="stat-pill-val success" id="metric-week-completed">0 / 0</span>
+                </div>
+                <div class="analytics-stat-pill">
+                  <span class="stat-pill-label">Missed</span>
+                  <span class="stat-pill-val danger" id="metric-week-missed">0</span>
+                </div>
+                <div class="analytics-stat-pill">
+                  <span class="stat-pill-label">Current Streak</span>
+                  <span class="stat-pill-val" id="metric-week-streak">0 Days</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Weekly Visualization (Mon-Sun cards) -->
+            <div class="weekly-viz-wrapper">
+              <div class="weekly-viz-header">
+                <span class="weekly-viz-title">Daily Activity</span>
+                <div class="weekly-viz-legend">
+                  <span class="legend-dot done"></span> Done
+                  <span class="legend-dot missed"></span> Missed
+                  <span class="legend-dot upcoming"></span> Upcoming
+                </div>
+              </div>
+              <div class="weekly-days-grid" id="weekly-days-grid">
+                <!-- Dynamically rendered Mon-Sun day cards -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Section B: Monthly Progress ("This Month") -->
+          <div class="card analytics-main-card" id="analytics-monthly-card">
+            <div class="analytics-card-header">
+              <div>
+                <span class="card-eyebrow">MONTHLY PERFORMANCE</span>
+                <h2 class="analytics-section-title">This Month</h2>
+              </div>
+              <span class="analytics-streak-badge purple" id="monthly-streak-badge">⭐ 0 Days Record</span>
+            </div>
+
+            <!-- Prominent Circular Score Showcase Row -->
+            <div class="analytics-score-showcase">
+              <div class="circular-score-widget">
+                <svg class="score-circle-svg" width="116" height="116" viewBox="0 0 116 116">
+                  <circle class="score-circle-track" cx="58" cy="58" r="48" fill="none" stroke-width="8" />
+                  <circle class="score-circle-bar purple" id="monthly-circle-bar" cx="58" cy="58" r="48" fill="none" stroke-width="8"
+                    stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6" transform="rotate(-90 58 58)" />
+                </svg>
+                <div class="score-circle-content">
+                  <span class="score-circle-val" id="monthly-score-text">0%</span>
+                  <span class="score-circle-tag" id="monthly-score-label">Routine</span>
+                </div>
+              </div>
+
+              <div class="analytics-showcase-metrics">
+                <div class="analytics-stat-pill">
+                  <span class="stat-pill-label">Tasks Planned</span>
+                  <span class="stat-pill-val" id="metric-month-planned">0</span>
+                </div>
+                <div class="analytics-stat-pill">
+                  <span class="stat-pill-label">Completed</span>
+                  <span class="stat-pill-val success" id="metric-month-completed">0 / 0</span>
+                </div>
+                <div class="analytics-stat-pill">
+                  <span class="stat-pill-label">Missed</span>
+                  <span class="stat-pill-val danger" id="metric-month-missed">0</span>
+                </div>
+                <div class="analytics-stat-pill">
+                  <span class="stat-pill-label">Active Days</span>
+                  <span class="stat-pill-val" id="metric-month-active-days">0 Days</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Monthly Calendar Heatmap -->
+            <div class="monthly-heatmap-wrapper">
+              <div class="monthly-heatmap-header">
+                <span class="heatmap-month-title" id="monthly-heatmap-title">Calendar Heatmap</span>
+                <div class="heatmap-legend">
+                  <span>Less</span>
+                  <span class="legend-cell level-0"></span>
+                  <span class="legend-cell level-1"></span>
+                  <span class="legend-cell level-2"></span>
+                  <span class="legend-cell level-3"></span>
+                  <span>More</span>
+                </div>
+              </div>
+              
+              <div class="heatmap-weekdays-row">
+                <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+              </div>
+              <div class="heatmap-days-grid" id="monthly-heatmap-grid">
+                <!-- Dynamically populated month days -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==================================================== -->
+    <!-- FLOATING PILL BOTTOM NAVIGATION BAR (Mobile Dock)    -->
+    <!-- 5 Clean Tabs: Home | Today | Memories | Projects | Dashboard -->
+    <!-- ==================================================== -->
+    <nav class="bottom-nav">
+      <!-- 1. Home -->
+      <button class="nav-item active" data-target="view-dashboard" aria-label="Home">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span class="nav-label">Home</span>
+      </button>
+
+      <!-- 2. Today -->
+      <button class="nav-item" data-target="view-tasks" aria-label="Today">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <polyline points="9 13 11 15 15 11"></polyline>
+        </svg>
+        <span class="nav-label">Today</span>
+      </button>
+
+      <!-- 3. Memories -->
+      <button class="nav-item" data-target="view-journal" aria-label="Memories">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          <circle cx="13" cy="9" r="1.5"></circle>
+        </svg>
+        <span class="nav-label">Memories</span>
+      </button>
+
+      <!-- 4. Projects -->
+      <button class="nav-item" data-target="view-projects" aria-label="Projects">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        <span class="nav-label">Projects</span>
+      </button>
+
+      <!-- 5. Dashboard (Dedicated Analytics & Consistency Page) -->
+      <button class="nav-item" data-target="view-analytics" aria-label="Dashboard">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span class="nav-label">Dashboard</span>
+      </button>
+    </nav>
+
+    <!-- ==================================================== -->
+    <!-- REUSABLE BLOCK NOTE EDITOR MODAL                     -->
+    <!-- Section 22 - 1 & 2: Blocks, Templates, Autosave      -->
+    <!-- ==================================================== -->
+    <div id="note-editor-modal" class="modal-overlay">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow" id="editor-modal-mode">NEW NOTE</span>
+            <input type="text" id="editor-note-title" class="editor-title-input" placeholder="Note title..." required>
+          </div>
+          <button class="icon-btn" id="btn-close-editor" aria-label="Close">✕</button>
+        </div>
+
+        <!-- Templates Quick Selector Bar -->
+        <div class="editor-template-bar">
+          <span class="template-bar-label">Templates:</span>
+          <button type="button" class="template-chip" data-template-key="daily_plan">📋 Daily Plan</button>
+          <button type="button" class="template-chip" data-template-key="project">🎯 Project Plan</button>
+          <button type="button" class="template-chip" data-template-key="study">📚 Study Notes</button>
+          <button type="button" class="template-chip" data-template-key="journal">☀️ Journal</button>
+        </div>
+
+        <!-- Block-Insertion Toolbar -->
+        <div class="editor-block-toolbar">
+          <button type="button" class="block-tool-btn" data-block-action="heading">H2 Heading</button>
+          <button type="button" class="block-tool-btn" data-block-action="checklist">☑ Checklist</button>
+          <button type="button" class="block-tool-btn" data-block-action="bullet">• Bullet</button>
+          <button type="button" class="block-tool-btn" data-block-action="divider">― Divider</button>
+        </div>
+
+        <div class="editor-meta-bar">
+          <input type="text" id="editor-note-tags" class="editor-tag-input" placeholder="Tags (e.g. Work, Ideas)">
+          <label class="pin-toggle-label">
+            <input type="checkbox" id="editor-note-pin">
+            <span>📌 Pin</span>
+          </label>
+        </div>
+
+        <textarea id="editor-note-content" class="editor-content-textarea" placeholder="Start typing or choose a template above..."></textarea>
+
+        <div class="modal-footer">
+          <div class="editor-status-wrap">
+            <span id="editor-save-status" class="editor-status-text">Draft</span>
+            <span id="editor-stats-count" class="editor-stats-text">0 words</span>
+          </div>
+          <div class="modal-footer-actions">
+            <button class="btn btn-outline btn-sm" id="btn-cancel-note">Cancel</button>
+            <button class="btn btn-primary btn-sm" id="btn-save-note">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- NEW PROJECT MODAL DIALOG                             -->
+    <!-- Section 23 - B: Project Creation                     -->
+    <!-- ==================================================== -->
+    <div id="project-modal" class="modal-overlay">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow">NEW PROJECT</span>
+            <h2 class="card-title">Create Monthly Project</h2>
+          </div>
+          <button class="icon-btn" id="btn-close-project-modal" aria-label="Close">✕</button>
+        </div>
+
+        <form id="form-create-project" class="project-form">
+          <div class="form-group">
+            <label for="project-title-input" class="form-label">Project Title</label>
+            <input type="text" id="project-title-input" class="quick-input" placeholder="e.g. Q4 Product Launch" required>
+          </div>
+
+          <div class="form-group">
+            <label for="project-desc-input" class="form-label">Description / Scope</label>
+            <textarea id="project-desc-input" class="journal-textarea" rows="3" placeholder="Outline the objective and deliverables..."></textarea>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="project-status-select" class="form-label">Initial Status</label>
+              <select id="project-status-select" class="priority-select">
+                <option value="in_progress">In Progress</option>
+                <option value="not_started">Not Started</option>
+                <option value="on_hold">On Hold</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="project-deadline-input" class="form-label">Target Deadline</label>
+              <input type="date" id="project-deadline-input" class="quick-input">
+            </div>
+          </div>
+
+          <div class="modal-footer-actions" style="margin-top: 14px;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-project">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Create Project</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- COMPANION PHOTO CROP & REPOSITION MODAL              -->
+    <!-- Feature: Customizable Animal Companions              -->
+    <!-- ==================================================== -->
+    <div id="companion-crop-modal" class="modal-overlay">
+      <div class="modal-sheet crop-modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow">CUSTOM COMPANION</span>
+            <h2 class="card-title">Crop & Reposition Photo</h2>
+          </div>
+          <button class="icon-btn" id="btn-close-crop-modal" aria-label="Close">✕</button>
+        </div>
+
+        <div class="crop-modal-body">
+          <p class="crop-hint">Adjust the zoom and position for your companion avatar.</p>
+          <div class="crop-preview-viewport">
+            <div class="crop-circle-mask">
+              <img id="crop-source-image" src="" alt="Crop Preview" class="crop-target-img">
+            </div>
+          </div>
+
+          <div class="crop-controls-group">
+            <div class="crop-slider-row">
+              <span class="crop-slider-label">🔍 Zoom</span>
+              <input type="range" id="crop-zoom-slider" min="1" max="2.5" step="0.05" value="1" class="crop-slider">
+            </div>
+            <div class="crop-slider-row">
+              <span class="crop-slider-label">↔ Pan X</span>
+              <input type="range" id="crop-panx-slider" min="-80" max="80" step="2" value="0" class="crop-slider">
+            </div>
+            <div class="crop-slider-row">
+              <span class="crop-slider-label">↕ Pan Y</span>
+              <input type="range" id="crop-pany-slider" min="-80" max="80" step="2" value="0" class="crop-slider">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-crop">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-apply-crop">Apply & Save Photo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- RECURRING TASK ACTION SCOPE MODAL                    -->
+    <!-- Feature: Recurring Tasks Occurrence Management       -->
+    <!-- ==================================================== -->
+    <div id="recurring-scope-modal" class="modal-overlay">
+      <div class="modal-sheet scope-modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow" id="scope-modal-action-tag">RECURRING SCHEDULE</span>
+            <h2 class="card-title" id="scope-modal-title">Delete Recurring Task</h2>
+          </div>
+          <button class="icon-btn" id="btn-close-scope-modal" aria-label="Close">✕</button>
+        </div>
+        <p class="scope-modal-desc">This task repeats automatically. Choose which repetitions you want to affect:</p>
+        <div class="scope-options-list">
+          <button type="button" class="scope-option-btn" data-scope="this">
+            <div class="scope-option-icon">1️⃣</div>
+            <div class="scope-option-text">
+              <strong>Only this occurrence</strong>
+              <span>Delete today's task without changing past history or future repetitions</span>
+            </div>
+          </button>
+          <button type="button" class="scope-option-btn" data-scope="future">
+            <div class="scope-option-icon">⏩</div>
+            <div class="scope-option-text">
+              <strong>This and all future occurrences</strong>
+              <span>Keep your completed history intact while ending all upcoming repetitions</span>
+            </div>
+          </button>
+          <button type="button" class="scope-option-btn danger" data-scope="all">
+            <div class="scope-option-icon">🗑️</div>
+            <div class="scope-option-text">
+              <strong>All occurrences in series</strong>
+              <span>Remove the entire recurring series and all past & future records</span>
+            </div>
+          </button>
+        </div>
+        <div class="modal-footer-actions" style="margin-top: 14px;">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-scope">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- QUICK CAPTURE MODAL DIALOG (Feature Three)           -->
+    <!-- ==================================================== -->
+    <div id="quick-capture-modal" class="modal-overlay">
+      <div class="modal-sheet quick-capture-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow">⚡ QUICK CAPTURE INBOX</span>
+            <h2 class="card-title">Capture Idea or Task</h2>
+          </div>
+          <button class="icon-btn" id="btn-close-quick-capture" aria-label="Close">✕</button>
+        </div>
+
+        <form id="form-quick-capture" class="quick-capture-form">
+          <div class="form-group">
+            <input type="text" id="quick-capture-title" class="quick-capture-input" placeholder="What's on your mind? (Task, note, or quick idea...)" required autofocus autocomplete="off">
+          </div>
+
+          <div class="quick-capture-type-row" style="margin-top: 10px;">
+            <span class="form-label" style="margin-bottom: 6px;">Category:</span>
+            <div class="quick-type-pills">
+              <button type="button" class="quick-type-pill active" data-capture-type="task">📋 Task</button>
+              <button type="button" class="quick-type-pill" data-capture-type="note">📝 Note</button>
+              <button type="button" class="quick-type-pill" data-capture-type="idea">💡 Idea</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 12px;">
+            <label class="form-label" for="quick-capture-notes">Optional Notes or Description</label>
+            <textarea id="quick-capture-notes" class="journal-textarea" rows="2" placeholder="Add optional details, steps, or thoughts..."></textarea>
+          </div>
+
+          <div class="modal-footer-actions" style="margin-top: 14px; display:flex; justify-content:space-between; align-items:center;">
+            <span class="quick-capture-hint" style="font-size:0.75rem; color:var(--text-tertiary);">Tip: Press <strong>Enter</strong> to save fast</span>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-quick-capture">Cancel</button>
+              <button type="submit" class="btn btn-primary btn-sm">Save to Inbox</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- INBOX ITEM CONVERT MODAL                             -->
+    <!-- ==================================================== -->
+    <div id="inbox-convert-modal" class="modal-overlay">
+      <div class="modal-sheet convert-modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow">ORGANIZE INBOX ITEM</span>
+            <h2 class="card-title" id="convert-modal-title">Convert to...</h2>
+          </div>
+          <button class="icon-btn" id="btn-close-convert-modal" aria-label="Close">✕</button>
+        </div>
+
+        <div class="convert-type-selector">
+          <button type="button" class="convert-type-btn active" data-convert-target="task">
+            <div class="convert-icon">✅</div>
+            <div class="convert-label">Today Task</div>
+          </button>
+          <button type="button" class="convert-type-btn" data-convert-target="note">
+            <div class="convert-icon">📝</div>
+            <div class="convert-label">Note Document</div>
+          </button>
+          <button type="button" class="convert-type-btn" data-convert-target="project">
+            <div class="convert-icon">🎯</div>
+            <div class="convert-label">Monthly Project</div>
+          </button>
+        </div>
+
+        <form id="form-convert-inbox" class="convert-form" style="margin-top: 16px;">
+          <input type="hidden" id="convert-item-id">
+
+          <div class="form-group">
+            <label class="form-label" for="convert-input-title">Title</label>
+            <input type="text" id="convert-input-title" class="quick-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="convert-input-desc">Details / Content</label>
+            <textarea id="convert-input-desc" class="journal-textarea" rows="2"></textarea>
+          </div>
+
+          <!-- Dynamic target-specific fields -->
+          <div id="convert-fields-task" class="convert-fields-block">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label" for="convert-task-priority">Priority</label>
+                <select id="convert-task-priority" class="priority-select">
+                  <option value="normal">Normal</option>
+                  <option value="high">High ⚡</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="convert-task-date">Scheduled Date</label>
+                <input type="date" id="convert-task-date" class="quick-input">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top: 8px;">
+              <label class="form-label" for="convert-task-project">Link to Project (Optional)</label>
+              <select id="convert-task-project" class="priority-select">
+                <option value="">No Project</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="convert-fields-note" class="convert-fields-block" style="display:none;">
+            <div class="form-group">
+              <label class="form-label" for="convert-note-tags">Tags</label>
+              <input type="text" id="convert-note-tags" class="quick-input" placeholder="e.g. Inbox, Ideas, Planning">
+            </div>
+          </div>
+
+          <div id="convert-fields-project" class="convert-fields-block" style="display:none;">
+            <div class="form-group">
+              <label class="form-label" for="convert-project-deadline">Target Deadline</label>
+              <input type="date" id="convert-project-deadline" class="quick-input">
+            </div>
+          </div>
+
+          <div class="modal-footer-actions" style="margin-top: 16px;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-convert">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Convert & Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- UPLOAD VICTORY SOUND MODAL                           -->
+    <!-- ==================================================== -->
+    <div id="sound-upload-modal" class="modal-overlay">
+      <div class="modal-sheet sound-upload-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow" id="sound-modal-eyebrow">CUSTOM AUDIO</span>
+            <h2 class="card-title" id="sound-modal-title">Upload Victory Sound</h2>
+          </div>
+          <button class="icon-btn" id="btn-close-sound-modal" aria-label="Close">✕</button>
+        </div>
+
+        <form id="form-upload-sound" class="sound-form">
+          <input type="hidden" id="sound-replace-id" value="">
+
+          <div class="sound-picker-zone" id="sound-dropzone">
+            <input type="file" id="sound-file-picker" accept="audio/*,.mp3,.wav,.ogg,.m4a,.webm" class="hidden-file-input">
+            <div class="sound-picker-content">
+              <div class="sound-picker-icon">🎵</div>
+              <p class="sound-picker-text" id="sound-picker-prompt-text">Choose an audio file from your device</p>
+              <span class="sound-picker-hint">Supported: MP3, WAV, OGG, M4A, WEBM (Max 5 MB, &le;15s)</span>
+              <label for="sound-file-picker" class="btn btn-sm btn-outline" style="margin-top: 8px; cursor: pointer;">Select Audio File</label>
+            </div>
+          </div>
+
+          <!-- Preview & Details card (visible once file selected) -->
+          <div id="sound-file-preview-card" class="sound-preview-card" style="display:none; margin-top: 12px;">
+            <div class="sound-preview-info">
+              <strong id="sound-preview-filename">audio.mp3</strong>
+              <span id="sound-preview-meta" style="font-size:0.75rem; color:var(--text-tertiary);">0.0 MB • 0.0s</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline" id="btn-preview-local-sound">▶ Play Preview</button>
+          </div>
+
+          <div class="form-group" id="sound-title-group" style="margin-top: 12px;">
+            <label class="form-label" for="sound-custom-title">Sound Name</label>
+            <input type="text" id="sound-custom-title" class="quick-input" placeholder="e.g. Epic Fanfare, Level Clear" required>
+          </div>
+
+          <div class="form-row-2" id="sound-options-row">
+            <div class="form-group">
+              <label class="form-label" for="sound-event-trigger">Play Celebration On</label>
+              <select id="sound-event-trigger" class="priority-select">
+                <option value="task_complete">Every Completed Task</option>
+                <option value="milestone_complete">Project Milestones</option>
+              </select>
+            </div>
+            <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:22px;">
+              <label class="custom-checkbox">
+                <input type="checkbox" id="sound-set-default" checked>
+                <span class="checkmark"></span>
+              </label>
+              <span class="settings-desc" style="margin:0;">Set as default sound</span>
+            </div>
+          </div>
+
+          <!-- Progress feedback -->
+          <div id="sound-upload-progress-wrap" style="display:none; margin-top: 12px;">
+            <div class="project-progress-bar-track">
+              <div class="project-progress-bar-fill" id="sound-upload-progress-fill" style="width: 100%;"></div>
+            </div>
+            <span id="sound-upload-status-text" style="font-size: 0.74rem; color: var(--text-secondary); margin-top: 4px; display: block;">Uploading audio...</span>
+          </div>
+
+          <div class="modal-footer-actions" style="margin-top: 16px;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-sound-upload">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sound-upload">Save to Sound Library</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- CREATE / EDIT MEMORY DIARY PAGE MODAL                -->
+    <!-- ==================================================== -->
+    <div id="memory-editor-modal" class="modal-overlay">
+      <div class="modal-sheet memory-diary-sheet">
+        <div class="diary-page-binder"></div>
+        <div class="modal-header diary-modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow" id="memory-editor-mode-label">NEW MEMORY</span>
+            <h2 class="diary-sheet-title" id="memory-editor-sheet-title">Capture a Memory</h2>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-memory-editor" aria-label="Close">✕</button>
+        </div>
+
+        <form id="form-memory-editor" class="diary-memory-form">
+          <input type="hidden" id="memory-edit-id" value="">
+
+          <!-- Title input (optional) -->
+          <div class="diary-field-group">
+            <input type="text" id="memory-input-title" class="diary-title-input" placeholder="A peaceful day (optional title)">
+          </div>
+
+          <!-- Date, Time & Location row -->
+          <div class="diary-meta-inputs-grid">
+            <div class="diary-meta-field">
+              <label for="memory-input-date" class="diary-field-label">Date</label>
+              <input type="date" id="memory-input-date" class="diary-meta-input" required>
+            </div>
+            <div class="diary-meta-field">
+              <label for="memory-input-time" class="diary-field-label">Time</label>
+              <input type="text" id="memory-input-time" class="diary-meta-input" placeholder="e.g. 4:30 PM">
+            </div>
+            <div class="diary-meta-field full-width">
+              <label for="memory-input-location" class="diary-field-label">Location (optional)</label>
+              <div class="diary-input-icon-wrap">
+                <svg class="diary-field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                <input type="text" id="memory-input-location" class="diary-meta-input has-icon" placeholder="e.g. Araku Valley, Coffee Plantation">
+              </div>
+            </div>
+          </div>
+
+          <!-- Feelings / Mood Selector -->
+          <div class="diary-field-group">
+            <label class="diary-field-label">How did you feel? / Mood</label>
+            <div class="diary-moods-scroll" id="memory-moods-picker">
+              <!-- 11 Moods: 😊 Happy, 😍 Loved, 🥰 Special, 😌 Peaceful, 🤩 Excited, 😂 Fun, 😢 Sad, 😔 Emotional, 😴 Tired, 😎 Amazing, ❤️ Grateful -->
+              <button type="button" class="mood-pill active" data-mood="😊 Happy">😊 Happy</button>
+              <button type="button" class="mood-pill" data-mood="😍 Loved">😍 Loved</button>
+              <button type="button" class="mood-pill" data-mood="🥰 Special">🥰 Special</button>
+              <button type="button" class="mood-pill" data-mood="😌 Peaceful">😌 Peaceful</button>
+              <button type="button" class="mood-pill" data-mood="🤩 Excited">🤩 Excited</button>
+              <button type="button" class="mood-pill" data-mood="😂 Fun">😂 Fun</button>
+              <button type="button" class="mood-pill" data-mood="😎 Amazing">😎 Amazing</button>
+              <button type="button" class="mood-pill" data-mood="❤️ Grateful">❤️ Grateful</button>
+              <button type="button" class="mood-pill" data-mood="😴 Tired">😴 Tired</button>
+              <button type="button" class="mood-pill" data-mood="😢 Sad">😢 Sad</button>
+              <button type="button" class="mood-pill" data-mood="😔 Emotional">😔 Emotional</button>
+            </div>
+            <input type="hidden" id="memory-selected-mood" value="😊 Happy">
+          </div>
+
+          <!-- Photos Management Section (Optional) -->
+          <div class="diary-field-group">
+            <div class="diary-photos-header">
+              <label class="diary-field-label">Photos (Optional)</label>
+              <div class="diary-photo-btn-group">
+                <label class="btn btn-sm btn-outline btn-photo-upload" for="memory-file-input">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  <span>Add Photos</span>
+                </label>
+                <input type="file" id="memory-file-input" accept="image/*" multiple style="display:none;">
+
+                <label class="btn btn-sm btn-outline btn-photo-camera" for="memory-camera-input">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  <span>Camera</span>
+                </label>
+                <input type="file" id="memory-camera-input" accept="image/*" capture="environment" style="display:none;">
+              </div>
+            </div>
+
+            <!-- Photo Preview Strip / Reordering Grid -->
+            <div class="diary-photos-preview-wrap" id="memory-photos-preview-wrap">
+              <div class="diary-photos-empty-hint" id="memory-photos-empty-hint">
+                Photos are optional. You can attach photos from your gallery or write without images.
+              </div>
+            </div>
+          </div>
+
+          <!-- Written Diary Text -->
+          <div class="diary-field-group">
+            <label for="memory-input-text" class="diary-field-label">Dear Diary Entry</label>
+            <div class="diary-lined-paper-wrap">
+              <textarea id="memory-input-text" class="diary-journal-textarea" rows="8" placeholder="Dear diary, what happened today?"></textarea>
+            </div>
+          </div>
+
+          <!-- Tags Input -->
+          <div class="diary-field-group">
+            <label for="memory-input-tags" class="diary-field-label">Tags (optional, comma-separated)</label>
+            <input type="text" id="memory-input-tags" class="diary-meta-input" placeholder="e.g. Peaceful, Weekend, Friends">
+          </div>
+
+          <!-- Actions -->
+          <div class="modal-footer-actions diary-footer-actions">
+            <button type="button" class="btn btn-outline" id="btn-cancel-memory-editor">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-save-memory-submit" id="btn-submit-memory">
+              <span>Save Entry</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- FULL MEMORY READER / DETAIL MODAL                    -->
+    <!-- ==================================================== -->
+    <div id="memory-detail-modal" class="modal-overlay">
+      <div class="modal-sheet memory-detail-sheet">
+        <button type="button" class="icon-btn memory-detail-close-btn" id="btn-close-memory-detail" aria-label="Close">✕</button>
+
+        <!-- Cover Photo Banner -->
+        <div class="memory-detail-cover-wrap" id="memory-detail-cover-wrap">
+          <img id="memory-detail-cover-img" src="" alt="Memory Cover" class="memory-detail-cover-img">
+          <div class="memory-detail-cover-gradient"></div>
+          <div class="memory-detail-cover-meta">
+            <span class="memory-detail-mood-badge" id="memory-detail-mood">😊 Happy</span>
+          </div>
+        </div>
+
+        <div class="memory-detail-content">
+          <h1 class="memory-detail-title" id="memory-detail-title">Trip to Araku Valley</h1>
+          
+          <div class="memory-detail-meta-row">
+            <span class="memory-meta-item" id="memory-detail-date">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <span id="memory-detail-date-text">12 Oct 2026</span>
+            </span>
+            <span class="memory-meta-item" id="memory-detail-time">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span id="memory-detail-time-text">4:30 PM</span>
+            </span>
+            <span class="memory-meta-item" id="memory-detail-location-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              <span id="memory-detail-location-text">Araku Valley</span>
+            </span>
+          </div>
+
+          <!-- Tags row -->
+          <div class="memory-detail-tags" id="memory-detail-tags-row"></div>
+
+          <!-- Written Diary Story -->
+          <div class="memory-detail-diary-body">
+            <p id="memory-detail-body-text" class="memory-detail-text"></p>
+          </div>
+
+          <!-- Photo Gallery Section -->
+          <div class="memory-detail-gallery-section" id="memory-detail-gallery-section">
+            <h3 class="memory-gallery-title">Photo Album (<span id="memory-detail-photos-count">0</span>)</h3>
+            <div class="memory-detail-gallery-grid" id="memory-detail-gallery-grid">
+              <!-- Dynamically populated photo tiles, clicking opens Lightbox -->
+            </div>
+          </div>
+
+          <!-- Action Buttons: Edit, Delete -->
+          <div class="memory-detail-footer-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-edit-memory-detail">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              <span>Edit Memory</span>
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-delete-memory-detail">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- FULLSCREEN PHOTO LIGHTBOX (Swipe & Prev/Next)        -->
+    <!-- ==================================================== -->
+    <div id="photo-lightbox-modal" class="lightbox-overlay">
+      <button type="button" class="lightbox-close-btn" id="btn-close-lightbox" aria-label="Close Lightbox">✕</button>
+      
+      <div class="lightbox-stage" id="lightbox-touch-stage">
+        <button type="button" class="lightbox-nav-btn prev" id="btn-lightbox-prev" aria-label="Previous Photo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+
+        <div class="lightbox-image-wrap">
+          <img id="lightbox-active-img" src="" alt="Fullscreen View" class="lightbox-img">
+        </div>
+
+        <button type="button" class="lightbox-nav-btn next" id="btn-lightbox-next" aria-label="Next Photo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+
+      <div class="lightbox-footer">
+        <span class="lightbox-counter" id="lightbox-counter">1 of 1</span>
+        <span class="lightbox-caption" id="lightbox-caption"></span>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- PROJECT DETAIL & EDIT MODAL                          -->
+    <!-- ==================================================== -->
+    <div id="project-detail-modal" class="modal-overlay">
+      <div class="modal-sheet project-detail-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow" id="project-detail-status-badge">IN PROGRESS</span>
+            <h2 class="card-title" id="project-detail-title">Project Details</h2>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-project-detail" aria-label="Close">✕</button>
+        </div>
+
+        <div class="project-detail-body">
+          <p class="project-detail-desc" id="project-detail-desc"></p>
+          
+          <!-- Progress Section -->
+          <div class="project-detail-progress-box">
+            <div class="project-progress-label-row">
+              <span class="form-label">Progress</span>
+              <span class="project-progress-percent" id="project-detail-progress-num">75%</span>
+            </div>
+            <div class="project-progress-bar-track">
+              <div class="project-progress-bar-fill" id="project-detail-progress-bar" style="width: 75%;"></div>
+            </div>
+            <div class="project-progress-slider-wrap">
+              <label for="project-progress-slider" class="screen-subtitle" style="font-size:0.75rem;">Adjust Progress (%):</label>
+              <input type="range" id="project-progress-slider" min="0" max="100" step="5" value="75" class="progress-range-slider">
+            </div>
+          </div>
+
+          <!-- Dates & Meta -->
+          <div class="project-meta-grid">
+            <div class="project-meta-card">
+              <span class="meta-label">Start Date</span>
+              <span class="meta-val" id="project-detail-start-date">-</span>
+            </div>
+            <div class="project-meta-card">
+              <span class="meta-label">Target End Date</span>
+              <span class="meta-val" id="project-detail-end-date">-</span>
+            </div>
+          </div>
+
+          <!-- Notes Section -->
+          <div class="project-notes-box">
+            <label class="form-label" for="project-detail-notes-area">Project Notes & Deliverables</label>
+            <textarea id="project-detail-notes-area" class="journal-textarea" rows="3" placeholder="Add specific notes, links, or notes for this project..."></textarea>
+          </div>
+
+          <!-- Milestones / Related tasks -->
+          <div class="project-milestones-box">
+            <div class="milestones-header">
+              <span class="form-label">Milestones & Related Tasks</span>
+              <button type="button" class="btn btn-xs btn-outline" id="btn-add-milestone-inline">+ Add Milestone</button>
+            </div>
+            <div id="project-milestones-list" class="project-milestones-list"></div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div class="modal-footer-actions" style="margin-top: 18px;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-edit-project-props">Edit Details</button>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-delete-project-btn">Delete Project</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-save-project-progress">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- TASK EDIT MODAL                                      -->
+    <!-- ==================================================== -->
+    <div id="task-edit-modal" class="modal-overlay">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow">EDIT TASK</span>
+            <h2 class="card-title">Modify Task</h2>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-task-edit" aria-label="Close">✕</button>
+        </div>
+        <form id="form-edit-task" class="project-form">
+          <input type="hidden" id="edit-task-id" value="">
+          <div class="form-group">
+            <label class="form-label" for="edit-task-title">Task Title</label>
+            <input type="text" id="edit-task-title" class="quick-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-task-desc">Description</label>
+            <textarea id="edit-task-desc" class="journal-textarea" rows="2" placeholder="Task details..."></textarea>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="edit-task-priority">Priority</label>
+              <select id="edit-task-priority" class="priority-select">
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-task-time">Scheduled Time</label>
+              <input type="text" id="edit-task-time" class="quick-input" placeholder="e.g. 10:30 AM">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-task-reminder">Reminder</label>
+            <input type="text" id="edit-task-reminder" class="quick-input" placeholder="e.g. 15 minutes before">
+          </div>
+          <div class="modal-footer-actions" style="margin-top: 14px;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-task-edit">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Save Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- FLOATING ACTION BUTTON (+)                           -->
+    <!-- ==================================================== -->
+    <button id="btn-floating-add" class="floating-action-btn" aria-label="Create New Item" title="Add Task, Project, Memory or Note">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
+
+    <!-- ==================================================== -->
+    <!-- QUICK CREATE ACTION SHEET / MODAL                    -->
+    <!-- ==================================================== -->
+    <div id="quick-create-menu-modal" class="modal-overlay">
+      <div class="modal-sheet quick-create-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow">QUICK CREATE</span>
+            <h2 class="card-title">What would you like to add?</h2>
+          </div>
+          <button class="icon-btn" id="btn-close-quick-create" aria-label="Close">✕</button>
+        </div>
+
+        <div class="quick-create-options-grid">
+          <!-- 1. New Task -->
+          <button type="button" class="quick-create-tile" id="qc-action-task">
+            <div class="qc-tile-icon-badge blue">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </div>
+            <div class="qc-tile-content">
+              <span class="qc-tile-title">New Task</span>
+              <span class="qc-tile-desc">Add a to-do to your daily list</span>
+            </div>
+            <span class="qc-tile-arrow">→</span>
+          </button>
+
+          <!-- 2. New Project -->
+          <button type="button" class="quick-create-tile" id="qc-action-project">
+            <div class="qc-tile-icon-badge purple">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </div>
+            <div class="qc-tile-content">
+              <span class="qc-tile-title">New Project</span>
+              <span class="qc-tile-desc">Track a multi-day initiative or goal</span>
+            </div>
+            <span class="qc-tile-arrow">→</span>
+          </button>
+
+          <!-- 3. Write Diary Memory -->
+          <button type="button" class="quick-create-tile" id="qc-action-memory">
+            <div class="qc-tile-icon-badge rose">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+            </div>
+            <div class="qc-tile-content">
+              <span class="qc-tile-title">Write Memory</span>
+              <span class="qc-tile-desc">Record daily diary & attach photos</span>
+            </div>
+            <span class="qc-tile-arrow">→</span>
+          </button>
+
+          <!-- 4. New Note -->
+          <button type="button" class="quick-create-tile" id="qc-action-note">
+            <div class="qc-tile-icon-badge emerald">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <div class="qc-tile-content">
+              <span class="qc-tile-title">New Note</span>
+              <span class="qc-tile-desc">Write block notes, templates, or ideas</span>
+            </div>
+            <span class="qc-tile-arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- 1. FIRST-TIME USER SETUP ONBOARDING MODAL            -->
+    <!-- ==================================================== -->
+    <div id="first-time-onboarding-modal" class="modal-overlay">
+      <div class="modal-sheet onboarding-sheet">
+        <div class="onboarding-sheet-content">
+          <div class="onboarding-hero-icon">👋</div>
+          <h2 class="onboarding-main-title">Welcome to Day Book</h2>
+          <p class="onboarding-subtitle">Let's personalize your experience.</p>
+
+          <form id="form-first-time-onboarding" class="onboarding-form-box" novalidate>
+            <div class="form-group">
+              <label class="form-label" for="onboarding-user-name">Name</label>
+              <input type="text" id="onboarding-user-name" name="name" class="form-input" placeholder="Enter your name" autocomplete="name">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="onboarding-user-age">Age (Optional)</label>
+              <input type="number" id="onboarding-user-age" name="age" class="form-input" placeholder="Enter your age (optional)" min="1" max="120">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block onboarding-btn-continue" id="btn-onboarding-continue">Continue</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- 2. EDIT USER PROFILE MODAL                           -->
+    <!-- ==================================================== -->
+    <div id="edit-profile-modal" class="modal-overlay">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <h2 class="modal-title">Edit Profile</h2>
+            <p class="modal-subtitle">Update your personal details anytime.</p>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-edit-profile" aria-label="Close">✕</button>
+        </div>
+
+        <form id="form-edit-profile" class="onboarding-form-box">
+          <div class="form-group">
+            <label class="form-label" for="edit-profile-name">Name</label>
+            <input type="text" id="edit-profile-name" class="form-input" required autocomplete="name">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-profile-age">Age</label>
+            <input type="number" id="edit-profile-age" class="form-input" min="1" max="120" required>
+          </div>
+
+          <div class="modal-actions-bar">
+            <button type="button" class="btn btn-outline" id="btn-cancel-edit-profile">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- 3. HEALTH & WELLNESS PLAN MODAL                      -->
+    <!-- ==================================================== -->
+    <div id="health-plan-modal" class="modal-overlay">
+      <div class="modal-sheet health-modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="health-modal-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+                <path d="M12 5v4"></path>
+              </svg>
+              <span>Daily Health &amp; Wellness</span>
+            </div>
+            <h2 class="modal-title">Today's Wellness Plan</h2>
+            <p class="modal-subtitle" id="health-profile-summary-badge">General Fitness • Beginner</p>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-health-modal" aria-label="Close">✕</button>
+        </div>
+
+        <!-- Health Progress Bar & Stats -->
+        <div class="health-modal-stats-bar">
+          <div class="health-modal-stats-info">
+            <span class="health-modal-stats-label">Daily Progress</span>
+            <span class="health-modal-stats-val" id="health-modal-completed-count">0 of 4 completed (0%)</span>
+          </div>
+          <div class="health-progress-wrap">
+            <div class="health-progress-bar" id="health-modal-progress-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Dynamic Health Tasks List with Real Checkboxes -->
+        <div class="health-modal-tasks-scroll" id="health-modal-tasks-list">
+          <!-- Populated by HealthManager -->
+        </div>
+
+        <!-- Health Controls & Actions -->
+        <div class="health-modal-footer">
+          <div class="health-modal-footer-left">
+            <button type="button" class="btn btn-sm btn-outline" id="btn-toggle-rest-day">🌿 Take a Rest Day</button>
+            <button type="button" class="btn btn-sm btn-outline" id="btn-regenerate-health-plan" title="Refresh today's tasks">🔄 Refresh Plan</button>
+          </div>
+          <button type="button" class="btn btn-sm btn-subtle" id="btn-edit-health-prefs">Preferences</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- 4. HEALTH ONBOARDING & PREFERENCES MODAL             -->
+    <!-- ==================================================== -->
+    <div id="health-onboarding-modal" class="modal-overlay">
+      <div class="modal-sheet health-onboarding-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow">CUSTOMIZE YOUR ROUTINE</span>
+            <h2 class="modal-title">Personalize Health Plan</h2>
+            <p class="modal-subtitle">Pick your preferences for a realistic, sustainable routine.</p>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-health-onboarding" aria-label="Close">✕</button>
+        </div>
+
+        <form id="form-health-onboarding" class="health-onboarding-form">
+          <!-- 1. Wellness Goal -->
+          <div class="health-form-section">
+            <label class="health-form-section-label">1. Primary Wellness Goal</label>
+            <div class="health-options-grid">
+              <label class="health-radio-tile">
+                <input type="radio" name="health-goal" value="fitness" checked>
+                <div class="tile-content">
+                  <span class="tile-title">🏃 General Fitness</span>
+                  <span class="tile-desc">Stay active, energetic, and move daily</span>
+                </div>
+              </label>
+              <label class="health-radio-tile">
+                <input type="radio" name="health-goal" value="strength">
+                <div class="tile-content">
+                  <span class="tile-title">💪 Build Strength</span>
+                  <span class="tile-desc">Progressive bodyweight or resistance work</span>
+                </div>
+              </label>
+              <label class="health-radio-tile">
+                <input type="radio" name="health-goal" value="habits">
+                <div class="tile-content">
+                  <span class="tile-title">🌱 Daily Healthy Habits</span>
+                  <span class="tile-desc">Consistent hydration, sleep, &amp; walking</span>
+                </div>
+              </label>
+              <label class="health-radio-tile">
+                <input type="radio" name="health-goal" value="stamina">
+                <div class="tile-content">
+                  <span class="tile-title">⚡ Stamina &amp; Endurance</span>
+                  <span class="tile-desc">Brisk movement, heart health &amp; energy</span>
+                </div>
+              </label>
+              <label class="health-radio-tile">
+                <input type="radio" name="health-goal" value="gym">
+                <div class="tile-content">
+                  <span class="tile-title">🏋️ Balanced Gym Routine</span>
+                  <span class="tile-desc">Balanced weights and gym equipment</span>
+                </div>
+              </label>
+              <label class="health-radio-tile">
+                <input type="radio" name="health-goal" value="home">
+                <div class="tile-content">
+                  <span class="tile-title">🏠 Active Home Workouts</span>
+                  <span class="tile-desc">Effective home exercise without gym travel</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 2. Experience Level -->
+          <div class="health-form-section">
+            <label class="health-form-section-label">2. Experience Level</label>
+            <div class="health-pill-group">
+              <label class="health-pill-radio">
+                <input type="radio" name="health-exp" value="beginner" checked>
+                <span>Beginner</span>
+              </label>
+              <label class="health-pill-radio">
+                <input type="radio" name="health-exp" value="intermediate">
+                <span>Some Experience</span>
+              </label>
+              <label class="health-pill-radio">
+                <input type="radio" name="health-exp" value="advanced">
+                <span>Experienced</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. Workout Location Preference -->
+          <div class="health-form-section">
+            <label class="health-form-section-label">3. Workout Preference</label>
+            <div class="health-pill-group">
+              <label class="health-pill-radio">
+                <input type="radio" name="health-pref" value="walking" checked>
+                <span>Walking &amp; Movement</span>
+              </label>
+              <label class="health-pill-radio">
+                <input type="radio" name="health-pref" value="home">
+                <span>Home</span>
+              </label>
+              <label class="health-pill-radio">
+                <input type="radio" name="health-pref" value="gym">
+                <span>Gym</span>
+              </label>
+              <label class="health-pill-radio">
+                <input type="radio" name="health-pref" value="combo">
+                <span>Combination</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 4. Available Equipment -->
+          <div class="health-form-section">
+            <label class="health-form-section-label">4. Available Equipment</label>
+            <div class="health-pill-group">
+              <label class="health-pill-radio">
+                <input type="radio" name="health-equip" value="bodyweight" checked>
+                <span>Bodyweight / None</span>
+              </label>
+              <label class="health-pill-radio">
+                <input type="radio" name="health-equip" value="dumbbells">
+                <span>Dumbbells</span>
+              </label>
+              <label class="health-pill-radio">
+                <input type="radio" name="health-equip" value="bands">
+                <span>Resistance Bands</span>
+              </label>
+              <label class="health-pill-radio">
+                <input type="radio" name="health-equip" value="gym">
+                <span>Full Gym</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 5. Optional Weight (in kg) -->
+          <div class="health-form-section">
+            <label class="health-form-section-label" for="health-input-weight">
+              5. Weight in kg <span class="health-optional-badge">Optional</span>
+            </label>
+            <p class="health-section-hint">Recorded only for your personal record. Never used to restrict food or force body-weight targets.</p>
+            <input type="number" id="health-input-weight" class="form-input" placeholder="e.g. 70 (optional, can skip)" step="0.5" min="20" max="300">
+          </div>
+
+          <!-- 6. Practical Limitations -->
+          <div class="health-form-section">
+            <label class="health-form-section-label" for="health-input-limitations">
+              6. Notes or Practical Limitations <span class="health-optional-badge">Optional</span>
+            </label>
+            <input type="text" id="health-input-limitations" class="form-input" placeholder="e.g. Sensitive knees, prefers low impact">
+          </div>
+
+          <div class="modal-actions-bar">
+            <button type="button" class="btn btn-outline" id="btn-cancel-health-onboarding">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save &amp; Generate Plan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- 5. TERMS & CONDITIONS MODAL                          -->
+    <!-- ==================================================== -->
+    <div id="terms-conditions-modal" class="modal-overlay">
+      <div class="modal-sheet terms-modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="card-eyebrow">DAYBOOK LEGAL &amp; AGREEMENT</span>
+            <h2 class="modal-title">Terms &amp; Conditions</h2>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-terms-modal" aria-label="Close">✕</button>
+        </div>
+        <div class="terms-modal-scroll" id="terms-modal-body">
+          <div class="terms-content-text">
+            <h3>Daybook Terms &amp; Conditions</h3>
+            <p class="terms-meta-line">Effective date: 14 October 2026 &bull; Last updated: 14 October 2026</p>
+            
+            <h4>1. Introduction</h4>
+            <p>Welcome to Daybook. Daybook is a personal life-management application designed to help users organize their daily activities, tasks, projects, notes, habits, and personal memories. These Terms &amp; Conditions explain the rules governing your use of Daybook.</p>
+
+            <h4>2. Eligibility</h4>
+            <p>You must be legally permitted to use Daybook under the laws applicable to you.</p>
+
+            <h4>3. Description of the Service</h4>
+            <p>Daybook provides personal organization tools, including daily planning and task management, projects and reminders, notes and personal writing, daily diary entries and photographs, habit tracking, and personalization.</p>
+
+            <h4>4. Local Data Storage</h4>
+            <p>The current version of Daybook is intended to operate without user accounts, with user information stored locally on the user's device. Users should maintain their own backups of important information wherever necessary.</p>
+
+            <h4>5. User Responsibilities</h4>
+            <p>You agree to use Daybook lawfully and responsibly, avoid disrupting or damaging the application, keep your device secure, and respect applicable laws when storing personal content.</p>
+
+            <h4>6. Personal Content</h4>
+            <p>You retain any rights you have in the content you create or import into Daybook. Your diary entries, notes, tasks, and photographs remain your content.</p>
+
+            <h4>7. Acceptable Use</h4>
+            <p>You must not engage in unlawful activities or attempt unauthorized access to systems or data.</p>
+
+            <h4>8. Intellectual Property</h4>
+            <p>The Daybook name, branding, original interface designs, software, and other developer-created materials are protected by applicable intellectual property laws.</p>
+
+            <h4>9. Availability and Changes</h4>
+            <p>Daybook is a developing application. Features may change and improvements are rolled out continuously.</p>
+
+            <h4>10. No Professional Advice</h4>
+            <p>Daybook is a personal organization tool. Its task summaries, habit information, health task suggestions, and other outputs are provided for general organizational purposes and are not professional medical, legal, financial, or other regulated advice.</p>
+
+            <h4>11. Disclaimers and Liability</h4>
+            <p>To the extent permitted by applicable law, Daybook is provided on an as-available basis.</p>
+
+            <h4>12. Changes to These Terms</h4>
+            <p>We may revise these Terms &amp; Conditions as Daybook develops.</p>
+          </div>
+        </div>
+        <div class="modal-actions-bar">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-terms-agree">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+  </div>
+
+  <!-- Application Modules -->
+  <script src="/static/js/config.js"></script>
+  <script src="/static/js/offline.js?v=3"></script>
+  <script src="/static/js/mascot.js"></script>
+  <script src="/static/js/companions.js"></script>
+  <script src="/static/js/theme.js?v=4"></script>
+  <script src="/static/js/editor.js"></script>
+  <script src="/static/js/sounds.js?v=4"></script>
+  <script src="/static/js/health.js?v=8"></script>
+  <script src="/static/js/app.js?v=10"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js?v=6').then((reg) => {
+          console.log('[PWA] ServiceWorker registered successfully:', reg.scope);
+        }).catch((err) => {
+          console.warn('[PWA] ServiceWorker registration skipped:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

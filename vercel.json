@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/sw.js", "destination": "/static/sw.js" },
+    { "source": "/manifest.json", "destination": "/static/manifest.json" },
+    { "source": "/", "destination": "/templates/index.html" },
+    { "source": "/api/:path*", "destination": "https://daybook-api.onrender.com/api/:path*" }
+  ]
+}
