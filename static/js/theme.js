@@ -714,44 +714,82 @@ const ThemeManager = (() => {
       });
     }
 
-    // On file selected: downscale, analyze, and stage for preview
+    // On file selected: stage a lightweight object URL preview.
+    // Do NOT decode large phone photos into canvas here; that was causing tab crashes.
     if (bgFileInput) {
-      bgFileInput.addEventListener("change", async (e) => {
+      bgFileInput.addEventListener("change", (e) => {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
-
-        try {
-          if (window.showToast) window.showToast("Optimizing photo... 🖼️");
-          const result = await processAndOptimizeImage(file);
-
-          imageAnalysis = result.analysis;
-          stagedBg = {
-            dataUrl: result.dataUrl,
-            customBgFit: stagedBg?.customBgFit || currentPrefs.customBgFit || "cover",
-            customBgPosition: stagedBg?.customBgPosition || currentPrefs.customBgPosition || "center",
-            customBgOverlayMode: stagedBg?.customBgOverlayMode || currentPrefs.customBgOverlayMode || "dark",
-            customBgOverlayOpacity: stagedBg?.customBgOverlayOpacity ?? currentPrefs.customBgOverlayOpacity ?? 0.45,
-            customBgBlur: stagedBg?.customBgBlur ?? currentPrefs.customBgBlur ?? 0,
-            customBgDynamicAccent: stagedBg?.customBgDynamicAccent ?? currentPrefs.customBgDynamicAccent ?? true,
-            customBgAccentColor: result.analysis.dominantAccent,
-          };
-
-          updateBgPreviewMockup();
-          updatePreviewUI();
-          if (window.showToast) window.showToast("Preview ready. Click 'Apply' to set as wallpaper. ✨");
-        } catch (err) {
-          console.error("Image processing error:", err);
-          if (window.showToast) window.showToast(err.message || "Failed to process photo.", "error");
+        if (!file.type || !file.type.startsWith("image/")) {
+          if (window.showToast) window.showToast("Please choose a JPG, PNG, or WebP image.");
+          return;
         }
+        if (file.size > 20 * 1024 * 1024) {
+          if (window.showToast) window.showToast("Background image must be smaller than 20 MB.");
+          return;
+        }
+
+        if (stagedBg && stagedBg.previewObjectUrl) {
+          try { URL.revokeObjectURL(stagedBg.previewObjectUrl); } catch (_) {}
+        }
+        const previewObjectUrl = URL.createObjectURL(file);
+        imageAnalysis = null;
+        stagedBg = {
+          file,
+          dataUrl: previewObjectUrl,
+          previewObjectUrl,
+          customBgFit: currentPrefs.customBgFit || "cover",
+          customBgPosition: currentPrefs.customBgPosition || "center",
+          customBgOverlayMode: currentPrefs.customBgOverlayMode || "dark",
+          customBgOverlayOpacity: currentPrefs.customBgOverlayOpacity ?? 0.45,
+          customBgBlur: currentPrefs.customBgBlur ?? 0,
+          customBgDynamicAccent: currentPrefs.customBgDynamicAccent ?? true,
+          customBgAccentColor: currentPrefs.customBgAccentColor || currentPrefs.accentColor,
+        };
+        updateBgPreviewMockup();
+        updatePreviewUI();
+        if (window.showToast) window.showToast("Preview ready. Click 'Apply' to upload it. ✨");
       });
     }
 
     // Apply staged wallpaper
     if (applyBgBtn) {
       applyBgBtn.addEventListener("click", async () => {
-        if (!stagedBg && !cachedBgDataUrl) return;
+        if (!stagedBg && !cachedBgDataUrl && !currentPrefs.customBgImageUrl) return;
 
         const effective = stagedBg || currentPrefs;
+        if (stagedBg && stagedBg.file) {
+          if (applyBgBtn.disabled) return;
+          applyBgBtn.disabled = true;
+          const oldText = applyBgBtn.textContent;
+          applyBgBtn.textContent = "Uploading...";
+          try {
+            const formData = new FormData();
+            formData.append("image", stagedBg.file, stagedBg.file.name);
+            const uploadRes = await fetch("/api/background/upload", { method: "POST", body: formData });
+            let resData = {};
+            try { resData = await uploadRes.json(); } catch (_) {}
+            if (!uploadRes.ok || !(resData.image_url || resData.imageUrl)) {
+              throw new Error(resData.error || `Background upload failed (${uploadRes.status})`);
+            }
+            const serverUrl = resData.image_url || resData.imageUrl;
+            if (stagedBg.previewObjectUrl) {
+              try { URL.revokeObjectURL(stagedBg.previewObjectUrl); } catch (_) {}
+            }
+            cachedBgDataUrl = serverUrl;
+            currentPrefs.customBgImageUrl = serverUrl;
+          } catch (err) {
+            console.error("Background upload failed:", err);
+            if (window.showToast) window.showToast(err.message || "Background upload failed.");
+            applyBgBtn.disabled = false;
+            applyBgBtn.textContent = oldText;
+            return;
+          } finally {
+            applyBgBtn.disabled = false;
+            applyBgBtn.textContent = oldText;
+          }
+        }
+
         currentPrefs.customBgEnabled = true;
         currentPrefs.customBgFit = effective.customBgFit;
         currentPrefs.customBgPosition = effective.customBgPosition;
@@ -759,48 +797,7 @@ const ThemeManager = (() => {
         currentPrefs.customBgOverlayOpacity = effective.customBgOverlayOpacity;
         currentPrefs.customBgBlur = effective.customBgBlur;
         currentPrefs.customBgDynamicAccent = effective.customBgDynamicAccent;
-        if (effective.customBgAccentColor) {
-          currentPrefs.customBgAccentColor = effective.customBgAccentColor;
-        }
-
-        if (stagedBg && stagedBg.dataUrl) {
-          cachedBgDataUrl = stagedBg.dataUrl;
-
-          // Save to IndexedDB for offline capability
-          if (window.OfflineStorage) {
-            await window.OfflineStorage.saveCustomBackground(cachedBgDataUrl, {
-              analysis: imageAnalysis,
-              fit: currentPrefs.customBgFit,
-              position: currentPrefs.customBgPosition,
-            });
-          }
-
-          // Persist image to Flask backend
-          try {
-            const uploadRes = await fetch("/api/background/upload", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                image_data: cachedBgDataUrl,
-                fit: currentPrefs.customBgFit,
-                position: currentPrefs.customBgPosition,
-                overlay_mode: currentPrefs.customBgOverlayMode,
-                overlay_opacity: currentPrefs.customBgOverlayOpacity,
-                blur: currentPrefs.customBgBlur,
-                dynamic_accent: currentPrefs.customBgDynamicAccent ? 1 : 0,
-                accent_color: currentPrefs.customBgAccentColor,
-              }),
-            });
-            if (uploadRes.ok) {
-              const resData = await uploadRes.json();
-              if (resData.image_url) {
-                currentPrefs.customBgImageUrl = resData.image_url;
-              }
-            }
-          } catch (e) {
-            console.warn("Backend image upload failed, using local offline copy:", e);
-          }
-        }
+        if (effective.customBgAccentColor) currentPrefs.customBgAccentColor = effective.customBgAccentColor;
 
         stagedBg = null;
         applyTokens();
