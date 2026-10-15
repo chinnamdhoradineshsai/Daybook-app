@@ -17,20 +17,35 @@ IS_POSTGRES = bool(DATABASE_URL and DATABASE_URL.startswith("postgres"))
 INSTANCE_DIR = os.path.join(os.path.dirname(__file__), "instance")
 SQLITE_DB_PATH = os.path.join(INSTANCE_DIR, "daybook.db")
 
-
 def get_db_connection():
     """Returns a database connection based on environment configuration."""
     if IS_POSTGRES:
         import psycopg2
-        from psycopg2.extras import RealDictCursor
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        from psycopg2.extras import DictCursor
+
+        class CompatibleDictCursor(DictCursor):
+            def execute(self, query, vars=None):
+                if isinstance(query, str):
+                    query = query.replace("?", "%s")
+                return super().execute(query, vars)
+
+            def executemany(self, query, vars_list):
+                if isinstance(query, str):
+                    query = query.replace("?", "%s")
+                return super().executemany(query, vars_list)
+
+        conn = psycopg2.connect(
+            DATABASE_URL,
+            cursor_factory=CompatibleDictCursor,
+            connect_timeout=15
+        )
         return conn
+
     else:
         os.makedirs(INSTANCE_DIR, exist_ok=True)
         conn = sqlite3.connect(SQLITE_DB_PATH)
         conn.row_factory = sqlite3.Row
         return conn
-
 
 def init_db():
     """Initializes tables, migrates missing columns, and seeds initial data."""
