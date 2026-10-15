@@ -19,32 +19,11 @@ SQLITE_DB_PATH = os.path.join(INSTANCE_DIR, "daybook.db")
 
 
 def get_db_connection():
-    """Returns a database connection based on environment configuration.
-
-    For PostgreSQL, use a compatibility cursor that converts SQLite-style
-    qmark placeholders (?) into psycopg2 placeholders (%s). DictCursor is
-    used because this code accesses rows both by column name and by index.
-    """
+    """Returns a database connection based on environment configuration."""
     if IS_POSTGRES:
         import psycopg2
-        from psycopg2.extras import DictCursor
-
-        class CompatibleDictCursor(DictCursor):
-            def execute(self, query, vars=None):
-                if isinstance(query, str):
-                    query = query.replace("?", "%s")
-                return super().execute(query, vars)
-
-            def executemany(self, query, vars_list):
-                if isinstance(query, str):
-                    query = query.replace("?", "%s")
-                return super().executemany(query, vars_list)
-
-        conn = psycopg2.connect(
-            DATABASE_URL,
-            cursor_factory=CompatibleDictCursor,
-            connect_timeout=15,
-        )
+        from psycopg2.extras import RealDictCursor
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
         return conn
     else:
         os.makedirs(INSTANCE_DIR, exist_ok=True)
@@ -234,6 +213,23 @@ def init_db():
             cur.executescript(schema_sql)
 
         conn.commit()
+
+        # PostgreSQL/Supabase migrations for columns used by the current app.
+        # This runs after CREATE TABLE so it also works on a brand-new database.
+        if IS_POSTGRES:
+            cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS user_id TEXT DEFAULT 'default_user'")
+            cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reminder TEXT DEFAULT NULL")
+            cur.execute("ALTER TABLE projects ADD COLUMN IF NOT EXISTS user_id TEXT DEFAULT 'default_user'")
+            cur.execute("ALTER TABLE projects ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0")
+            cur.execute("ALTER TABLE projects ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''")
+            cur.execute("ALTER TABLE projects ADD COLUMN IF NOT EXISTS attachments TEXT DEFAULT '[]'")
+            cur.execute("ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS user_name TEXT DEFAULT ''")
+            cur.execute("ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS user_age INTEGER DEFAULT NULL")
+            cur.execute("ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS health_preferences TEXT DEFAULT '{}'")
+            cur.execute("ALTER TABLE victory_sounds ADD COLUMN IF NOT EXISTS user_id TEXT DEFAULT NULL")
+            cur.execute("ALTER TABLE victory_sounds ADD COLUMN IF NOT EXISTS file_hash TEXT DEFAULT NULL")
+            cur.execute("ALTER TABLE victory_sounds ADD COLUMN IF NOT EXISTS is_public INTEGER DEFAULT 0")
+            conn.commit()
 
         # Seed initial data if projects table is empty
         cur.execute("SELECT COUNT(*) AS cnt FROM projects")
@@ -2661,3 +2657,4 @@ def delete_victory_sound(sound_id, user_id=None):
         return sound
     finally:
         conn.close()
+
