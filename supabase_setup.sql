@@ -343,3 +343,20 @@ CREATE POLICY "Allow users to delete custom background wallpaper" ON storage.obj
             OR auth.role() = 'anon'
         )
     );
+
+-- ---------------------------------------------------------------------------
+-- Daybook server-side media buckets (safe to run more than once)
+-- The Flask backend uploads/reads these using the server secret key and
+-- exposes files through /api/storage/... so the buckets may stay private.
+-- ---------------------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('daybook-memories', 'daybook-memories', false)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('daybook-backgrounds', 'daybook-backgrounds', false)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('daybook-sounds', 'daybook-sounds', false)
+ON CONFLICT (id) DO NOTHING;
