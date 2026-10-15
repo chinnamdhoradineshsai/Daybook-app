@@ -89,6 +89,84 @@ def validate_audio_binary(audio_bytes, original_filename=""):
     return True, ext, duration_detected, None
 
 
+
+def _supabase_storage_config():
+    """Returns (url, key) for server-side Supabase Storage access."""
+    url = (os.getenv("SUPABASE_URL") or "").rstrip("/")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY") or ""
+    return url, key
+
+
+def upload_bytes_to_supabase(bucket, object_path, payload, content_type="application/octet-stream"):
+    """Uploads bytes to a public Supabase Storage bucket and returns a browser-ready URL."""
+    supabase_url, supabase_key = _supabase_storage_config()
+    if not supabase_url or not supabase_key:
+        return None
+
+    import requests
+    from urllib.parse import quote
+
+    encoded_path = quote(object_path, safe="/")
+    endpoint = f"{supabase_url}/storage/v1/object/{bucket}/{encoded_path}"
+    headers = {
+        "Authorization": f"Bearer {supabase_key}",
+        "apikey": supabase_key,
+        "Content-Type": content_type,
+        "x-upsert": "true",
+    }
+    response = requests.post(endpoint, data=payload, headers=headers, timeout=30)
+    if response.status_code not in (200, 201):
+        raise RuntimeError(f"Supabase Storage upload failed ({response.status_code}): {response.text[:300]}")
+    # Keep buckets private. Browser assets are served through our authenticated Flask proxy.
+    return f"/api/storage/{bucket}/{encoded_path}"
+
+
+def delete_supabase_public_url(public_url):
+    """Best-effort deletion for URLs returned by upload_bytes_to_supabase."""
+    if not public_url:
+        return False
+    supabase_url, supabase_key = _supabase_storage_config()
+    if not supabase_url or not supabase_key:
+        return False
+    try:
+        import requests
+        if public_url.startswith("/api/storage/"):
+            suffix = public_url.replace("/api/storage/", "", 1)
+        elif "/storage/v1/object/public/" in public_url:
+            suffix = public_url.split("/storage/v1/object/public/", 1)[1]
+        else:
+            return False
+        bucket, object_path = suffix.split("/", 1)
+        endpoint = f"{supabase_url}/storage/v1/object/{bucket}/{object_path}"
+        response = requests.delete(
+            endpoint,
+            headers={"Authorization": f"Bearer {supabase_key}", "apikey": supabase_key},
+            timeout=10,
+        )
+        return response.status_code in (200, 204)
+    except Exception:
+        return False
+
+
+def optimize_image_bytes(raw_bytes, max_dim=1800, quality=84):
+    """Compresses an uploaded image server-side so the browser never has to decode huge photos."""
+    if not raw_bytes:
+        raise ValueError("Empty image")
+    if not PILLOW_AVAILABLE:
+        return raw_bytes, "application/octet-stream", None
+
+    image = PILImage.open(io.BytesIO(raw_bytes))
+    image.load()
+    if image.mode not in ("RGB", "L"):
+        image = image.convert("RGB")
+    elif image.mode == "L":
+        image = image.convert("RGB")
+    if image.width > max_dim or image.height > max_dim:
+        image.thumbnail((max_dim, max_dim), PILImage.LANCZOS)
+    out = io.BytesIO()
+    image.save(out, format="JPEG", quality=quality, optimize=True)
+    return out.getvalue(), "image/jpeg", ".jpg"
+
 def create_app():
     """Application factory to configure and return the Flask application."""
     app = Flask(__name__)
@@ -96,7 +174,7 @@ def create_app():
     # Core configuration
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "daybook-insecure-dev-key")
     app.config["JSON_SORT_KEYS"] = False
-    app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8MB max upload
+    app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB max request
 
     # Configure CORS for Vercel and local web clients
     allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
@@ -131,6 +209,34 @@ def create_app():
         response = send_from_directory(app.static_folder, "manifest.json", mimetype="application/manifest+json")
         response.headers["Cache-Control"] = "no-cache"
         return response
+
+    @app.route("/api/storage/<bucket>/<path:object_path>", methods=["GET"])
+    def proxy_storage_object(bucket, object_path):
+        """Streams a private Supabase Storage object through the Flask backend."""
+        allowed_buckets = {"daybook-memories", "daybook-backgrounds", "daybook-sounds"}
+        if bucket not in allowed_buckets:
+            return jsonify({"error": "Unknown storage bucket"}), 404
+        supabase_url, supabase_key = _supabase_storage_config()
+        if not supabase_url or not supabase_key:
+            return jsonify({"error": "Storage is not configured"}), 503
+        try:
+            import requests
+            from urllib.parse import quote
+            encoded_path = quote(object_path, safe="/")
+            endpoint = f"{supabase_url}/storage/v1/object/{bucket}/{encoded_path}"
+            upstream = requests.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {supabase_key}", "apikey": supabase_key},
+                timeout=20,
+            )
+            if upstream.status_code != 200:
+                return jsonify({"error": "Stored file not found"}), upstream.status_code
+            response = Response(upstream.content, status=200, mimetype=upstream.headers.get("Content-Type", "application/octet-stream"))
+            response.headers["Cache-Control"] = "public, max-age=86400"
+            return response
+        except Exception as exc:
+            app.logger.exception("Storage proxy failed")
+            return jsonify({"error": f"Storage read failed: {exc}"}), 500
 
     # -------------------------------------------------------------
     # System & Health API
@@ -629,97 +735,85 @@ def create_app():
 
     @app.route("/api/memories/upload", methods=["POST"])
     def upload_memory_photos():
-        """
-        Accepts multiple images (multipart files or base64 JSON payload),
-        validates extensions, saves to static/uploads/memories/,
-        and returns list of accessible URLs.
-        """
-        allowed_extensions = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+        """Uploads memory photos to Supabase Storage (local fallback for development)."""
+        uploaded_urls = []
         upload_dir = os.path.join(app.static_folder, "uploads", "memories")
         os.makedirs(upload_dir, exist_ok=True)
-        uploaded_urls = []
 
-        # 1. Handle multipart files
-        if request.files:
-            file_list = request.files.getlist("photos") or request.files.getlist("photo") or [f for f in request.files.values()]
-            for file in file_list:
-                if not file.filename:
+        def persist_image(raw_bytes, original_name="photo.jpg"):
+            if not raw_bytes:
+                return None
+            if len(raw_bytes) > 20 * 1024 * 1024:
+                raise ValueError("Each photo must be smaller than 20 MB.")
+            try:
+                final_bytes, content_type, forced_ext = optimize_image_bytes(raw_bytes)
+            except Exception as exc:
+                raise ValueError(f"Could not read this image: {exc}")
+            ext = forced_ext or os.path.splitext(original_name or "")[1].lower() or ".jpg"
+            if ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+                ext = ".jpg"
+            if forced_ext:
+                ext = forced_ext
+            filename = f"mem_{int(datetime.now().timestamp() * 1000)}_{uuid.uuid4().hex[:10]}{ext}"
+            object_path = f"default_user/{filename}"
+
+            try:
+                cloud_url = upload_bytes_to_supabase("daybook-memories", object_path, final_bytes, content_type)
+                if cloud_url:
+                    return cloud_url
+            except Exception as exc:
+                app.logger.exception("Memory photo Supabase upload failed")
+                return None
+
+            # Local development fallback only when Supabase isn't configured.
+            supabase_url, supabase_key = _supabase_storage_config()
+            if supabase_url and supabase_key:
+                return None
+            local_path = os.path.join(upload_dir, filename)
+            with open(local_path, "wb") as fh:
+                fh.write(final_bytes)
+            return f"/static/uploads/memories/{filename}"
+
+        try:
+            if request.files:
+                file_list = request.files.getlist("photos") or request.files.getlist("photo") or list(request.files.values())
+                for file in file_list:
+                    if not file or not file.filename:
+                        continue
+                    raw = file.read()
+                    url = persist_image(raw, file.filename)
+                    if not url:
+                        return jsonify({"error": "Photo storage failed. Check Supabase Storage buckets and server key."}), 500
+                    uploaded_urls.append(url)
+
+            payload = request.get_json(silent=True) or {}
+            b64_photos = payload.get("photos", [])
+            if isinstance(b64_photos, str):
+                b64_photos = [b64_photos]
+            for data_url in b64_photos:
+                if not isinstance(data_url, str):
                     continue
-                ext = os.path.splitext(file.filename)[1].lower()
-                if ext not in allowed_extensions:
-                    ext = ".jpg"
+                if data_url.startswith("http://") or data_url.startswith("https://") or data_url.startswith("/static/"):
+                    uploaded_urls.append(data_url)
+                    continue
+                match = re.match(r"^data:image/[^;]+;base64,(.+)$", data_url, re.IGNORECASE | re.DOTALL)
+                if not match:
+                    continue
+                raw = base64.b64decode(match.group(1))
+                url = persist_image(raw)
+                if not url:
+                    return jsonify({"error": "Photo storage failed. Check Supabase Storage buckets and server key."}), 500
+                uploaded_urls.append(url)
 
-                # Always save as JPEG for smaller file sizes (except webp/gif)
-                save_ext = ext if ext in {".webp", ".gif"} else ".jpg"
-                unique_name = f"mem_{int(datetime.now().timestamp() * 1000)}_{uuid.uuid4().hex[:6]}{save_ext}"
-                file_dest = os.path.join(upload_dir, unique_name)
+            if not uploaded_urls:
+                return jsonify({"error": "No valid photos received."}), 400
+            return jsonify({"success": True, "urls": uploaded_urls}), 200
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            app.logger.exception("Memory photo upload crashed")
+            return jsonify({"error": f"Photo upload failed: {exc}"}), 500
 
-                if PILLOW_AVAILABLE and save_ext in {".jpg", ".webp"}:
-                    try:
-                        img = PILImage.open(file.stream)
-                        # Convert RGBA/P to RGB for JPEG compatibility
-                        if img.mode in ("RGBA", "P", "LA"):
-                            img = img.convert("RGB")
-                        # Resize if wider than 1800px (keep aspect ratio, high quality)
-                        max_dim = 1800
-                        if img.width > max_dim or img.height > max_dim:
-                            img.thumbnail((max_dim, max_dim), PILImage.LANCZOS)
-                        img.save(file_dest, "JPEG" if save_ext == ".jpg" else "WEBP",
-                                 quality=85, optimize=True)
-                    except Exception:
-                        file.stream.seek(0)
-                        file.save(file_dest)
-                else:
-                    file.save(file_dest)
-
-                uploaded_urls.append(f"/static/uploads/memories/{unique_name}")
-
-
-        # 2. Handle base64 JSON payload
-        payload = request.get_json(silent=True) or {}
-        b64_photos = payload.get("photos", [])
-        if isinstance(b64_photos, str):
-            b64_photos = [b64_photos]
-        for data_url in b64_photos:
-            if not isinstance(data_url, str):
-                continue
-            if data_url.startswith("/static/") or data_url.startswith("http"):
-                uploaded_urls.append(data_url)
-                continue
-            match = re.match(r"^data:image\/([a-zA-Z0-9\+\-]+);base64,(.+)$", data_url)
-            if match:
-                raw_ext = match.group(1).lower()
-                ext = ".png" if "png" in raw_ext else ".webp" if "webp" in raw_ext else ".jpg"
-                save_ext = ext if ext in {".webp", ".gif"} else ".jpg"
-                b64_data = match.group(2)
-                try:
-                    raw_bytes = base64.b64decode(b64_data)
-                    unique_name = f"mem_{int(datetime.now().timestamp() * 1000)}_{uuid.uuid4().hex[:6]}{save_ext}"
-                    file_dest = os.path.join(upload_dir, unique_name)
-                    if PILLOW_AVAILABLE and save_ext in {".jpg", ".webp"}:
-                        try:
-                            img = PILImage.open(io.BytesIO(raw_bytes))
-                            if img.mode in ("RGBA", "P", "LA"):
-                                img = img.convert("RGB")
-                            max_dim = 1800
-                            if img.width > max_dim or img.height > max_dim:
-                                img.thumbnail((max_dim, max_dim), PILImage.LANCZOS)
-                            img.save(file_dest, "JPEG" if save_ext == ".jpg" else "WEBP", quality=85, optimize=True)
-                        except Exception:
-                            with open(file_dest, "wb") as f:
-                                f.write(raw_bytes)
-                    else:
-                        with open(file_dest, "wb") as f:
-                            f.write(raw_bytes)
-                    uploaded_urls.append(f"/static/uploads/memories/{unique_name}")
-                except Exception as e:
-                    app.logger.warning(f"Error decoding base64 image: {e}")
-
-        return jsonify({"success": True, "urls": uploaded_urls}), 200
-
-    # -------------------------------------------------------------
-    # Search API (Section 22 - 3)
-    # -------------------------------------------------------------
     @app.route("/api/search", methods=["GET"])
     def search():
         q = request.args.get("q", "")
@@ -745,186 +839,113 @@ def create_app():
     # -------------------------------------------------------------
     @app.route("/api/companion/upload", methods=["POST"])
     def upload_companion_photo():
-        """
-        Accepts a custom companion photo (multipart file or base64 JSON),
-        validates format (PNG, JPEG, WebP) and size (< 5MB), stores locally/cloud,
-        and saves in user preferences.
-        """
-        allowed_extensions = {".png", ".jpg", ".jpeg", ".webp"}
-        upload_dir = os.path.join(app.static_folder, "uploads", "companions")
-        os.makedirs(upload_dir, exist_ok=True)
-        file_path = os.path.join(upload_dir, "custom_avatar.png")
-        relative_url = "/static/uploads/companions/custom_avatar.png"
+        """Stores custom companion image in Supabase Storage."""
+        try:
+            raw = None
+            filename = "companion.jpg"
+            if request.files:
+                file = request.files.get("photo") or request.files.get("image") or next(iter(request.files.values()), None)
+                if file:
+                    filename = file.filename or filename
+                    raw = file.read()
+            if raw is None:
+                payload = request.get_json(silent=True) or {}
+                data_url = payload.get("photo_data") or payload.get("image_data")
+                if data_url:
+                    match = re.match(r"^data:image/[^;]+;base64,(.+)$", data_url, re.IGNORECASE | re.DOTALL)
+                    if match:
+                        raw = base64.b64decode(match.group(1))
+            if not raw:
+                return jsonify({"error": "No image data provided"}), 400
+            if len(raw) > 20 * 1024 * 1024:
+                return jsonify({"error": "Image must be smaller than 20 MB"}), 400
 
-        # 1. Handle multipart file upload
-        if "photo" in request.files:
-            file = request.files["photo"]
-            if not file.filename:
-                return jsonify({"error": "No file selected"}), 400
-            
-            ext = os.path.splitext(file.filename)[1].lower()
-            if ext not in allowed_extensions:
-                return jsonify({"error": "Unsupported file format. Please upload PNG, JPG, or WebP."}), 400
-            
-            file.save(file_path)
-            database.update_preferences({
-                "companion_id": "custom",
-                "companion_image_url": relative_url
-            })
-            return jsonify({
-                "success": True,
-                "imageUrl": relative_url,
-                "companion_id": "custom",
-                "message": "Custom photo uploaded successfully"
-            }), 200
+            final_bytes, content_type, _ = optimize_image_bytes(raw, max_dim=1200, quality=86)
+            object_path = f"default_user/custom_avatar_{uuid.uuid4().hex[:8]}.jpg"
+            image_url = upload_bytes_to_supabase("daybook-backgrounds", object_path, final_bytes, content_type)
+            if not image_url:
+                upload_dir = os.path.join(app.static_folder, "uploads", "companions")
+                os.makedirs(upload_dir, exist_ok=True)
+                file_path = os.path.join(upload_dir, "custom_avatar.jpg")
+                with open(file_path, "wb") as fh:
+                    fh.write(final_bytes)
+                image_url = "/static/uploads/companions/custom_avatar.jpg"
 
-        # 2. Handle base64 JSON payload
-        payload = request.get_json(silent=True) or {}
-        data_url = payload.get("photo_data")
-        if data_url and isinstance(data_url, str):
-            match = re.match(r"^data:image\/(png|jpeg|jpg|webp);base64,(.+)$", data_url, re.IGNORECASE)
-            if not match:
-                return jsonify({"error": "Invalid base64 image data"}), 400
-            
-            b64_data = match.group(2)
-            try:
-                raw_bytes = base64.b64decode(b64_data)
-                if len(raw_bytes) > 5 * 1024 * 1024:
-                    return jsonify({"error": "File size exceeds 5MB limit"}), 400
-                
-                with open(file_path, "wb") as f:
-                    f.write(raw_bytes)
-
-                database.update_preferences({
-                    "companion_id": "custom",
-                    "companion_image_url": relative_url
-                })
-                return jsonify({
-                    "success": True,
-                    "imageUrl": relative_url,
-                    "companion_id": "custom",
-                    "message": "Custom photo saved successfully"
-                }), 200
-            except Exception as e:
-                return jsonify({"error": f"Failed to save image: {str(e)}"}), 500
-
-        return jsonify({"error": "No image data provided"}), 400
+            database.update_preferences({"companion_id": "custom", "companion_image_url": image_url})
+            return jsonify({"success": True, "imageUrl": image_url, "image_url": image_url}), 200
+        except Exception as exc:
+            app.logger.exception("Companion upload failed")
+            return jsonify({"error": f"Failed to save image: {exc}"}), 500
 
     @app.route("/api/companion/photo", methods=["DELETE"])
     def delete_companion_photo():
-        """Removes the custom companion photo and resets companion selection."""
-        upload_dir = os.path.join(app.static_folder, "uploads", "companions")
-        file_path = os.path.join(upload_dir, "custom_avatar.png")
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except Exception:
-                pass
-        
-        database.update_preferences({
-            "companion_id": "bear",
-            "companion_image_url": None
-        })
+        prefs = database.get_preferences()
+        old_url = prefs.get("companion_image_url") if prefs else None
+        if old_url:
+            delete_supabase_public_url(old_url)
+        database.update_preferences({"companion_image_url": None, "companion_id": "bear"})
         return jsonify({"success": True}), 200
 
-    # -------------------------------------------------------------
-    # Custom Photo Background & Dynamic Theme API
-    # -------------------------------------------------------------
     @app.route("/api/background/upload", methods=["POST"])
     def upload_background_photo():
-        """
-        Accepts custom background photo (multipart file or base64 JSON),
-        validates format (JPEG, PNG, WebP) and size (< 10MB), stores locally/cloud,
-        and saves in user preferences.
-        """
-        allowed_extensions = {".png", ".jpg", ".jpeg", ".webp"}
-        upload_dir = os.path.join(app.static_folder, "uploads", "backgrounds")
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        # 1. Handle multipart file upload
-        if "photo" in request.files:
-            file = request.files["photo"]
-            if not file.filename:
-                return jsonify({"error": "No file selected"}), 400
-            
-            ext = os.path.splitext(file.filename)[1].lower()
-            if ext not in allowed_extensions:
-                return jsonify({"error": "Unsupported image format. Please upload JPEG, PNG, or WebP."}), 400
-            
-            filename = f"custom_bg{ext}"
-            file_path = os.path.join(upload_dir, filename)
-            relative_url = f"/static/uploads/backgrounds/{filename}"
-            
-            file.save(file_path)
-            database.update_preferences({
-                "custom_bg_enabled": 1,
-                "custom_bg_image_url": relative_url
-            })
-            return jsonify({
-                "success": True,
-                "imageUrl": relative_url,
-                "image_url": relative_url,
-                "message": "Custom background photo uploaded successfully"
-            }), 200
+        """Stores a custom background in Supabase Storage and saves its URL in preferences."""
+        try:
+            raw = None
+            filename = "background.jpg"
+            if request.files:
+                file = request.files.get("photo") or request.files.get("image") or next(iter(request.files.values()), None)
+                if file:
+                    filename = file.filename or filename
+                    raw = file.read()
+            payload = request.get_json(silent=True) or {}
+            if raw is None:
+                data_url = payload.get("photo_data") or payload.get("image_data")
+                if data_url:
+                    match = re.match(r"^data:image/[^;]+;base64,(.+)$", data_url, re.IGNORECASE | re.DOTALL)
+                    if match:
+                        raw = base64.b64decode(match.group(1))
+            if not raw:
+                return jsonify({"error": "No image data provided"}), 400
+            if len(raw) > 20 * 1024 * 1024:
+                return jsonify({"error": "Background image must be smaller than 20 MB"}), 400
 
-        # 2. Handle base64 JSON payload
-        payload = request.get_json(silent=True) or {}
-        data_url = payload.get("photo_data") or payload.get("image_data")
-        if data_url and isinstance(data_url, str):
-            match = re.match(r"^data:image\/(png|jpeg|jpg|webp);base64,(.+)$", data_url, re.IGNORECASE)
-            if not match:
-                return jsonify({"error": "Invalid base64 image data"}), 400
-            
-            format_ext = match.group(1).lower()
-            if format_ext == "jpeg":
-                format_ext = "jpg"
-            b64_data = match.group(2)
-            try:
-                raw_bytes = base64.b64decode(b64_data)
-                if len(raw_bytes) > 10 * 1024 * 1024:
-                    return jsonify({"error": "File size exceeds 10MB limit"}), 400
-                
-                filename = f"custom_bg.{format_ext}"
-                file_path = os.path.join(upload_dir, filename)
-                relative_url = f"/static/uploads/backgrounds/{filename}"
+            final_bytes, content_type, _ = optimize_image_bytes(raw, max_dim=2200, quality=86)
+            object_path = f"default_user/background_{uuid.uuid4().hex[:10]}.jpg"
+            image_url = upload_bytes_to_supabase("daybook-backgrounds", object_path, final_bytes, content_type)
+            if not image_url:
+                upload_dir = os.path.join(app.static_folder, "uploads", "backgrounds")
+                os.makedirs(upload_dir, exist_ok=True)
+                local_path = os.path.join(upload_dir, "custom_bg.jpg")
+                with open(local_path, "wb") as fh:
+                    fh.write(final_bytes)
+                image_url = "/static/uploads/backgrounds/custom_bg.jpg"
 
-                with open(file_path, "wb") as f:
-                    f.write(raw_bytes)
-
-                database.update_preferences({
-                    "custom_bg_enabled": 1,
-                    "custom_bg_image_url": relative_url
-                })
-                return jsonify({
-                    "success": True,
-                    "imageUrl": relative_url,
-                    "image_url": relative_url,
-                    "message": "Custom background photo saved successfully"
-                }), 200
-            except Exception as e:
-                return jsonify({"error": f"Failed to save background image: {str(e)}"}), 500
-
-        return jsonify({"error": "No image data provided"}), 400
+            update = {"custom_bg_enabled": 1, "custom_bg_image_url": image_url}
+            for field in ("fit", "position", "overlay_mode", "overlay_opacity", "blur", "dynamic_accent", "accent_color"):
+                if field not in payload:
+                    continue
+                mapping = {
+                    "fit": "custom_bg_fit", "position": "custom_bg_position",
+                    "overlay_mode": "custom_bg_overlay_mode", "overlay_opacity": "custom_bg_overlay_opacity",
+                    "blur": "custom_bg_blur", "dynamic_accent": "custom_bg_dynamic_accent",
+                    "accent_color": "custom_bg_accent_color",
+                }
+                update[mapping[field]] = payload[field]
+            database.update_preferences(update)
+            return jsonify({"success": True, "imageUrl": image_url, "image_url": image_url}), 200
+        except Exception as exc:
+            app.logger.exception("Background upload failed")
+            return jsonify({"error": f"Failed to save background image: {exc}"}), 500
 
     @app.route("/api/background/photo", methods=["DELETE"])
     def delete_background_photo():
-        """Removes the custom background photo and restores default background."""
-        upload_dir = os.path.join(app.static_folder, "uploads", "backgrounds")
-        for ext in (".png", ".jpg", ".jpeg", ".webp"):
-            file_path = os.path.join(upload_dir, f"custom_bg{ext}")
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except Exception:
-                    pass
-        
-        database.update_preferences({
-            "custom_bg_enabled": 0,
-            "custom_bg_image_url": None
-        })
+        prefs = database.get_preferences()
+        old_url = prefs.get("custom_bg_image_url") if prefs else None
+        if old_url:
+            delete_supabase_public_url(old_url)
+        database.update_preferences({"custom_bg_enabled": 0, "custom_bg_image_url": None})
         return jsonify({"success": True, "message": "Default background restored"}), 200
 
-    # -------------------------------------------------------------
     @app.route("/api/inbox", methods=["GET"])
     def list_inbox_items():
         status = request.args.get("status", "inbox")
@@ -969,33 +990,19 @@ def create_app():
     # Victory Sounds API & Secure Storage Engine
     # -------------------------------------------------------------
     def store_audio_file(audio_bytes, ext, user_id="default_user"):
-        """
-        Stores audio either in Supabase Storage bucket 'daybook-sounds'
-        or local static uploads folder when running in local development mode.
-        """
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
+        """Stores custom audio in Supabase Storage and returns a playable browser URL."""
         unique_id = uuid.uuid4().hex[:10]
         filename = f"sound_{unique_id}.{ext}"
+        object_path = f"{user_id}/{filename}"
+        mime_map = {"mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg", "m4a": "audio/mp4", "webm": "audio/webm"}
+        try:
+            cloud_url = upload_bytes_to_supabase("daybook-sounds", object_path, audio_bytes, mime_map.get(ext, "application/octet-stream"))
+            if cloud_url:
+                return cloud_url
+        except Exception:
+            app.logger.exception("Sound upload to Supabase failed")
+            raise
 
-        if supabase_url and supabase_key:
-            try:
-                import requests
-                storage_path = f"{user_id}/{filename}"
-                upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/daybook-sounds/{storage_path}"
-                headers = {
-                    "Authorization": f"Bearer {supabase_key}",
-                    "apikey": supabase_key,
-                    "Content-Type": f"audio/{ext}",
-                }
-                res = requests.post(upload_url, data=audio_bytes, headers=headers, timeout=10)
-                if res.status_code in (200, 201):
-                    return f"daybook-sounds/{storage_path}"
-            except Exception as e:
-                print(f"[Supabase Storage] Upload error, falling back to local: {e}")
-
-        # Local development storage fallback
         upload_dir = os.path.join(app.static_folder, "uploads", "sounds")
         os.makedirs(upload_dir, exist_ok=True)
         local_path = os.path.join(upload_dir, filename)
@@ -1004,20 +1011,11 @@ def create_app():
         return f"/static/uploads/sounds/{filename}"
 
     def remove_audio_file(file_path):
-        """Removes an audio file safely from Supabase Storage or local disk."""
+        """Removes a custom audio file from Supabase Storage or local development disk."""
         if not file_path:
             return
-        if file_path.startswith("daybook-sounds/"):
-            supabase_url = os.getenv("SUPABASE_URL")
-            supabase_key = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-            if supabase_url and supabase_key:
-                try:
-                    import requests
-                    obj_path = file_path.replace("daybook-sounds/", "", 1)
-                    del_url = f"{supabase_url.rstrip('/')}/storage/v1/object/daybook-sounds/{obj_path}"
-                    requests.delete(del_url, headers={"Authorization": f"Bearer {supabase_key}", "apikey": supabase_key}, timeout=5)
-                except Exception:
-                    pass
+        if file_path.startswith("/api/storage/") or (file_path.startswith("http") and "/storage/v1/object/public/" in file_path):
+            delete_supabase_public_url(file_path)
         elif file_path.startswith("/static/"):
             rel_path = file_path.replace("/static/", "", 1)
             full_path = os.path.join(app.static_folder, rel_path)
