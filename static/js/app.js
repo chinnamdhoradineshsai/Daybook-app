@@ -2238,51 +2238,70 @@ function renderEditorPhotoThumbnails() {
 
 async function handlePhotoFilesUpload(files) {
   if (!files || files.length === 0) return;
-  const rawList = Array.from(files).filter((f) => f && f.type && f.type.startsWith("image/"));
-  if (rawList.length === 0) {
-    showToast("Please choose an image file.");
+
+  const rawList = Array.from(files);
+  const allowedExts = [".jpg", ".jpeg", ".png", ".webp"];
+  const validFiles = rawList.filter((file) => {
+    const name = (file.name || "").toLowerCase();
+    const typeOk = file.type && file.type.startsWith("image/");
+    const extOk = allowedExts.some((ext) => name.endsWith(ext));
+    return typeOk || extOk;
+  });
+
+  if (validFiles.length === 0) {
+    showToast("Choose a JPG, JPEG, PNG, or WebP photo.");
     return;
   }
 
-  // Upload one image at a time. This avoids decoding several large phone photos
-  // into canvas memory at once, which was causing browser/tab crashes.
+  // Upload sequentially and DO NOT decode the local photo in the browser.
+  // This prevents large phone photos from freezing/crashing the tab.
   const uploadPromise = (async () => {
     let successCount = 0;
-    for (const file of rawList) {
-      if (file.size > 20 * 1024 * 1024) {
-        showToast(`${file.name} is too large. Maximum 20 MB per photo.`);
+
+    for (const file of validFiles) {
+      if (file.size > 12 * 1024 * 1024) {
+        showToast(`${file.name} is too large. Maximum 12 MB per photo.`);
         continue;
       }
 
-      const tempUrl = URL.createObjectURL(file);
-      AppState.editorPhotos = (AppState.editorPhotos || []).concat([tempUrl]);
-      renderEditorPhotoThumbnails();
+      showToast(`Uploading ${file.name}...`);
 
       try {
         const formData = new FormData();
         formData.append("photos", file, file.name);
-        const res = await fetch("/api/memories/upload", { method: "POST", body: formData });
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+        const res = await fetch("/api/memories/upload", {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
         let data = {};
         try { data = await res.json(); } catch (_) {}
-        if (!res.ok || !data.urls || !data.urls[0]) {
+
+        if (!res.ok || !Array.isArray(data.urls) || !data.urls[0]) {
           throw new Error(data.error || `Photo upload failed (${res.status})`);
         }
 
-        const currentPos = AppState.editorPhotos.indexOf(tempUrl);
-        if (currentPos !== -1) AppState.editorPhotos[currentPos] = data.urls[0];
+        AppState.editorPhotos = (AppState.editorPhotos || []).concat([data.urls[0]]);
+        renderEditorPhotoThumbnails();
         successCount += 1;
       } catch (err) {
-        const currentPos = AppState.editorPhotos.indexOf(tempUrl);
-        if (currentPos !== -1) AppState.editorPhotos.splice(currentPos, 1);
         console.error("Photo upload failed:", err);
-        showToast(err.message || "Photo upload failed. Please try a smaller JPG/PNG.");
-      } finally {
-        try { URL.revokeObjectURL(tempUrl); } catch (_) {}
-        renderEditorPhotoThumbnails();
+        if (err && err.name === "AbortError") {
+          showToast("Photo upload timed out. Try a smaller JPG/PNG.");
+        } else {
+          showToast(err.message || "Photo upload failed.");
+        }
       }
     }
+
     if (successCount > 0) {
-      showToast(`${successCount} photo${successCount > 1 ? "s" : ""} saved ✨`);
+      showToast(`${successCount} photo${successCount > 1 ? "s" : ""} uploaded successfully ✨`);
     }
   })();
 
@@ -3588,13 +3607,8 @@ function initSoundLibrary() {
       }
 
       const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      if (metaEl) metaEl.textContent = `${sizeMb} MB • Detecting duration...`;
+      if (metaEl) metaEl.textContent = `${sizeMb} MB • Ready to upload`;
       if (previewCard) previewCard.style.display = "flex";
-
-      const tempAudio = new Audio(URL.createObjectURL(file));
-      tempAudio.addEventListener("loadedmetadata", () => {
-        if (metaEl) metaEl.textContent = `${sizeMb} MB • ${tempAudio.duration.toFixed(1)}s`;
-      });
     });
   }
 
