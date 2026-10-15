@@ -19,11 +19,32 @@ SQLITE_DB_PATH = os.path.join(INSTANCE_DIR, "daybook.db")
 
 
 def get_db_connection():
-    """Returns a database connection based on environment configuration."""
+    """Returns a database connection based on environment configuration.
+
+    For PostgreSQL, use a compatibility cursor that converts SQLite-style
+    qmark placeholders (?) into psycopg2 placeholders (%s). DictCursor is
+    used because this code accesses rows both by column name and by index.
+    """
     if IS_POSTGRES:
         import psycopg2
-        from psycopg2.extras import RealDictCursor
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        from psycopg2.extras import DictCursor
+
+        class CompatibleDictCursor(DictCursor):
+            def execute(self, query, vars=None):
+                if isinstance(query, str):
+                    query = query.replace("?", "%s")
+                return super().execute(query, vars)
+
+            def executemany(self, query, vars_list):
+                if isinstance(query, str):
+                    query = query.replace("?", "%s")
+                return super().executemany(query, vars_list)
+
+        conn = psycopg2.connect(
+            DATABASE_URL,
+            cursor_factory=CompatibleDictCursor,
+            connect_timeout=15,
+        )
         return conn
     else:
         os.makedirs(INSTANCE_DIR, exist_ok=True)
@@ -2640,4 +2661,3 @@ def delete_victory_sound(sound_id, user_id=None):
         return sound
     finally:
         conn.close()
-
