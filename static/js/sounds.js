@@ -376,47 +376,10 @@ const SoundManager = (() => {
       throw new Error(validation.error);
     }
 
-    // Check if offline
+    // Do not convert audio files to base64 in the browser.
+    // That can consume a lot of memory and freeze/crash the tab.
     if (!navigator.onLine) {
-      // Convert file to base64 and queue in IndexedDB
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async () => {
-          try {
-            const base64Data = reader.result;
-            const tempSoundId = "offline_" + Date.now();
-            const payload = {
-              title: title || file.name.replace(/\.[^/.]+$/, ""),
-              event_trigger: eventTrigger,
-              is_default: isDefault,
-              duration: duration,
-              audio_data: base64Data,
-              filename: file.name,
-            };
-
-            if (window.OfflineStorage) {
-              await window.OfflineStorage.enqueueAction("UPLOAD_SOUND", payload);
-              // Also cache blob locally right away
-              await window.OfflineStorage.cacheAudioBlob(tempSoundId, file, {
-                id: tempSoundId,
-                title: payload.title,
-                file_format: file.name.split(".").pop() || "mp3",
-                duration: duration,
-              });
-            }
-
-            resolve({
-              id: tempSoundId,
-              title: payload.title,
-              is_offline_pending: true,
-            });
-          } catch (e) {
-            reject(e);
-          }
-        };
-        reader.onerror = () => reject(new Error("Failed to read audio file"));
-        reader.readAsDataURL(file);
-      });
+      throw new Error("You are offline. Connect to the internet before uploading audio.");
     }
 
     const formData = new FormData();
@@ -426,10 +389,18 @@ const SoundManager = (() => {
     formData.append("is_default", isDefault ? "true" : "false");
     if (duration > 0) formData.append("duration", duration.toString());
 
-    const res = await fetch("/api/sounds", {
-      method: "POST",
-      body: formData,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    let res;
+    try {
+      res = await fetch("/api/sounds", {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
