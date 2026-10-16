@@ -3,17 +3,17 @@
  * Caches app shell, stylesheet, icons, and JavaScript companion assets.
  */
 
-const CACHE_NAME = "daybook-v2.3.0-upload-fix";
+const CACHE_NAME = "daybook-v2.2.0";
 const ASSETS_TO_CACHE = [
   "/",
   "/static/css/style.css?v=10",
   "/static/js/config.js",
   "/static/js/offline.js?v=4",
   "/static/js/companions.js",
-  "/static/js/theme.js?v=6",
+  "/static/js/theme.js?v=5",
   "/static/js/editor.js",
-  "/static/js/sounds.js?v=6",
-  "/static/js/app.js?v=12",
+  "/static/js/sounds.js?v=5",
+  "/static/js/app.js?v=11",
   "/manifest.json",
 ];
 
