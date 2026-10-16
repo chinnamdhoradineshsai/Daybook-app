@@ -702,6 +702,7 @@ const ThemeManager = (() => {
     // ==========================================
     const bgFileInput = document.getElementById("bg-file-input");
     const triggerUploadBtn = document.getElementById("btn-trigger-upload-bg");
+    const uploadBtnText = document.getElementById("btn-upload-text");
     const applyBgBtn = document.getElementById("btn-apply-bg");
     const cancelBgBtn = document.getElementById("btn-cancel-bg");
     const restoreDefaultBgBtn = document.getElementById("btn-restore-default-bg");
