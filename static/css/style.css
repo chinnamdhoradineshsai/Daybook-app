@@ -6751,4 +6751,10 @@ input:checked + .slider::before {
   margin-top: 4px;
   font-weight: 500;
 }
-
+/* Hide the small profile letter above the name in Settings */
+.user-profile-avatar,
+.profile-avatar,
+.settings-profile-avatar,
+.profile-card-avatar {
+  display: none !important;
+}
